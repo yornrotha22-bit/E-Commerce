@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
+@{
+    // Drop your own artwork at wwwroot/images/kshop-logo.png and it takes over
+    // automatically; otherwise the bundled KStore wordmark is used.
+    var logoPng = System.IO.Path.Combine(Env.WebRootPath, "images", "kshop-logo.png");
+    var logoPath = System.IO.File.Exists(logoPng) ? "~/images/kshop-logo.png" : "~/images/kshop-logo-compact.svg";
+    var logoFooterPath = System.IO.File.Exists(logoPng) ? "~/images/kshop-logo.png" : "~/images/kshop-logo.svg";
+    var controllerName = ViewContext.RouteData.Values["controller"]?.ToString();
+    var actionName = ViewContext.RouteData.Values["action"]?.ToString();
+    var isStandaloneAuthPage = controllerName == "Account"
+        && actionName is "Login" or "Register";
+    var toastMessage = TempData["CartMessage"] as string ?? TempData["WishlistMessage"] as string;
+    var toastIsError = string.Equals(TempData["CartMessageType"] as string, "danger", StringComparison.OrdinalIgnoreCase);
+}
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#faf9f6" />
+    <link rel="icon" type="image/svg+xml" href="@Url.Content("~/favicon.svg")" />
+    <script>
+        // Applied before paint so the saved theme never flashes on load.
+        (function () {
+            var theme = 'light';
+
+            try {
+                var saved = window.localStorage.getItem('rs-theme');
+                var prefersDark = window.matchMedia
+                    && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                theme = saved === 'dark' || saved === 'light'
+                    ? saved
+                    : (prefersDark ? 'dark' : 'light');
+            } catch (error) {
+                theme = 'light';
+            }
+
+            document.documentElement.setAttribute('data-theme', theme);
+
+            var meta = document.querySelector('meta[name="theme-color"]');
+
+            if (meta) {
+                meta.setAttribute('content', theme === 'dark' ? '#14161a' : '#faf9f6');
+            }
+        }());
+    </script>
+    <title>@ViewData["Title"] · KStore</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600&display=swap" />
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          crossorigin="anonymous" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+    <script>
+        // Opt in to entrance animations only when JS runs and motion is allowed.
+        // Without this class all content is visible by default.
+        (function () {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return;
+            }
+            document.documentElement.classList.add('motion-ready');
+        }());
+    </script>
+</head>
+<body class="@(isStandaloneAuthPage ? "auth-page" : null)" data-dismiss-label="@T["common.dismiss"]">
+    <a class="skip-link" href="#mainContent">@T["common.skipToContent"]</a>
+
+    @if (!isStandaloneAuthPage)
+    {
+    <header class="rs-header" id="rsHeader">
+        <div class="container rs-header__inner">
+            <a class="rs-logo" asp-area="" asp-controller="Home" asp-action="Index">
+                <img class="rs-logo__img" src="@Url.Content(logoPath)" alt="KStore" width="128" height="64" />
+            </a>
+
+            <form class="rs-search d-none d-md-flex" method="get" role="search"
+                  asp-area="" asp-controller="Products" asp-action="Index">
+                <label class="visually-hidden" for="headerSearch">@T["common.searchProducts"]</label>
+                <svg class="rs-search__icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M16.5 16.5 21 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <input id="headerSearch" type="search" name="search"
+                       value="@Context.Request.Query["search"]"
+                       placeholder="@T["common.searchPlaceholder"]" autocomplete="off" />
+                <button type="submit">@T["common.search"]</button>
+            </form>
+
+            <div class="rs-actions">
+                <div class="d-none d-sm-block">
+                    <partial name="_LanguageSwitcher" />
+                </div>
+
+                <partial name="_ThemeToggle" />
+
+                <a class="rs-icon-btn d-none d-lg-inline-flex" asp-area="" asp-controller="Wishlist"
+                   asp-action="Index" aria-label="@T["common.wishlist"]" title="@T["common.wishlist"]">
+                    <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 20s-7-4.35-7-9.3A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 7 3.7C19 15.65 12 20 12 20Z"
+                              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                    </svg>
+                </a>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="dropdown d-none d-lg-block">
+                        <button class="rs-icon-btn" type="button" data-bs-toggle="dropdown"
+                                aria-expanded="false" aria-label="@T["common.myAccount"]" title="@T["common.myAccount"]">
+                            <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6" />
+                                <path d="M4.8 20c1.1-3.5 3.9-5.3 7.2-5.3s6.1 1.8 7.2 5.3"
+                                      fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                            </svg>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end rs-menu">
+                            <li class="rs-menu__head">
+                                <span class="rs-menu__avatar">@await Component.InvokeAsync("UserAvatar")</span>
+                                <span class="rs-menu__who">
+                                    <span class="rs-menu__name">@User.Identity.Name</span>
+                                    <span class="rs-menu__hint">@T["nav.signedInAs"]</span>
+                                </span>
+                            </li>
+                            <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Index">@T["common.dashboard"]</a></li>
+                            <li><a class="dropdown-item" asp-area="" asp-controller="Orders" asp-action="Index">@T["common.orders"]</a></li>
+                            <li><a class="dropdown-item" asp-area="" asp-controller="Wishlist" asp-action="Index">@T["common.wishlist"]</a></li>
+                            <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Addresses">@T["common.addresses"]</a></li>
+                            <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile">@T["common.profile"]</a></li>
+                            @if (User.IsInRole(Roles.SuperAdmin) || User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Staff))
+                            {
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                        @T["common.adminDashboard"]
+                                    </a>
+                                </li>
+                            }
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="dropdown-item">@T["common.signOut"]</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <a class="rs-signin d-none d-lg-inline-flex" asp-area="" asp-controller="Account" asp-action="Login">
+                        @T["common.signIn"]
+                    </a>
+                }
+
+                @await Component.InvokeAsync("CartStatus")
+
+                <button class="rs-icon-btn rs-menu-btn d-lg-none" type="button"
+                        data-bs-toggle="offcanvas" data-bs-target="#mobileMenu"
+                        aria-controls="mobileMenu" aria-label="@T["nav.openMenu"]">
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor"
+                              stroke-width="1.7" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <nav class="rs-nav d-none d-lg-block" aria-label="@T["nav.main"]">
+            <div class="container rs-nav__inner">
+                <a asp-area="" asp-controller="Home" asp-action="Index">@T["nav.home"]</a>
+                <a asp-area="" asp-controller="Products" asp-action="Index">@T["nav.shopAll"]</a>
+                <a asp-area="" asp-controller="Products" asp-action="Index" asp-route-sort="newest">@T["nav.newArrivals"]</a>
+                <a asp-area="" asp-controller="Products" asp-action="Index" asp-route-sort="popular">@T["nav.bestSellers"]</a>
+                <a asp-area="" asp-controller="Home" asp-action="Policies">@T["nav.shipping"]</a>
+                <span class="rs-nav__note">@T["nav.note"]</span>
+            </div>
+        </nav>
+    </header>
+
+    <div class="offcanvas offcanvas-end rs-drawer" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+        <div class="offcanvas-header">
+            <span class="rs-drawer__title" id="mobileMenuLabel">KStore</span>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="@T["nav.closeMenu"]"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form class="rs-search rs-search--mobile" method="get" role="search"
+                  asp-area="" asp-controller="Products" asp-action="Index">
+                <label class="visually-hidden" for="mobileSearch">@T["common.searchProducts"]</label>
+                <svg class="rs-search__icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M16.5 16.5 21 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <input id="mobileSearch" type="search" name="search" placeholder="@T["common.searchProducts"]" autocomplete="off" />
+                <button type="submit">@T["common.go"]</button>
+            </form>
+
+            <div class="rs-drawer__lang">
+                <partial name="_LanguageSwitcher" />
+                <partial name="_ThemeToggle" />
+            </div>
+
+            <nav class="rs-drawer__nav" aria-label="@T["nav.main"]">
+                <a asp-area="" asp-controller="Home" asp-action="Index">@T["nav.home"]</a>
+                <a asp-area="" asp-controller="Products" asp-action="Index">@T["nav.shopAll"]</a>
+                <a asp-area="" asp-controller="Products" asp-action="Index" asp-route-sort="newest">@T["nav.newArrivals"]</a>
+                <a asp-area="" asp-controller="Products" asp-action="Index" asp-route-sort="popular">@T["nav.bestSellers"]</a>
+                <a asp-area="" asp-controller="Home" asp-action="Policies">@T["nav.shipping"]</a>
+            </nav>
+
+            <hr />
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <nav class="rs-drawer__nav" aria-label="@T["nav.account"]">
+                    <a asp-area="" asp-controller="Account" asp-action="Index">@T["common.dashboard"]</a>
+                    <a asp-area="" asp-controller="Orders" asp-action="Index">@T["common.orders"]</a>
+                    <a asp-area="" asp-controller="Wishlist" asp-action="Index">@T["common.wishlist"]</a>
+                    <a asp-area="" asp-controller="Account" asp-action="Addresses">@T["common.addresses"]</a>
+                    <a asp-area="" asp-controller="Account" asp-action="Profile">@T["common.profile"]</a>
+                    @if (User.IsInRole(Roles.SuperAdmin) || User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Staff))
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index">@T["common.adminDashboard"]</a>
+                    }
+                </nav>
+                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="mt-3">
+                    <button type="submit" class="btn btn-outline-secondary w-100">@T["common.signOut"]</button>
+                </form>
+            }
+            else
+            {
+                <div class="d-grid gap-2">
+                    <a class="btn btn-primary" asp-area="" asp-controller="Account" asp-action="Login">@T["common.signIn"]</a>
+                    <a class="btn btn-outline-secondary" asp-area="" asp-controller="Account" asp-action="Register">
+                        @T["common.createAccount"]
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end rs-drawer rs-cart-drawer" tabindex="-1" id="cartDrawer"
+         aria-labelledby="cartDrawerLabel"
+         data-cart-drawer-url="@Url.Action("Drawer", "Cart", new { area = "" })">
+        <div class="offcanvas-header">
+            <span class="rs-drawer__title" id="cartDrawerLabel">@T["cart.title"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="@T["cart.close"]"></button>
+        </div>
+        <div class="offcanvas-body rs-cart-drawer__body" id="cartDrawerBody" aria-live="polite">
+            <div class="rs-cart-drawer__loading">
+                <span class="rs-cart-drawer__spinner" aria-hidden="true"></span>
+                <span class="small text-muted">@T["cart.loading"]</span>
+            </div>
+        </div>
+    </div>
+    }
+
+    <main role="main" id="mainContent" class="@(isStandaloneAuthPage ? "auth-page__main" : null)">
+        @RenderBody()
+    </main>
+
+    @if (!isStandaloneAuthPage)
+    {
+    <footer class="rs-footer">
+        <div class="container">
+            <div class="row gy-4 py-5">
+                <div class="col-lg-4">
+                    <a class="rs-logo rs-logo--footer" asp-area="" asp-controller="Home" asp-action="Index">
+                        <img class="rs-logo__img" src="@Url.Content(logoFooterPath)" alt="KStore" width="184" height="92" />
+                    </a>
+                    <p class="rs-footer__blurb">
+                        @T["footer.blurb"]
+                    </p>
+                    <p class="rs-footer__meta">@T["footer.pricesUsd"]</p>
+                </div>
+
+                @await Component.InvokeAsync("StoreInfo")
+            </div>
+
+            <div class="rs-footer__bottom">
+                <span>@T.Format("footer.rights", DateTime.UtcNow.Year)</span>
+                <span class="rs-footer__payments">
+                    <span>@T["footer.cod"]</span>
+                    <span>@T["footer.bankTransfer"]</span>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    @if (!string.IsNullOrWhiteSpace(toastMessage))
+    {
+        <div class="rs-toast-region" aria-live="polite" aria-atomic="true">
+            <div class="toast rs-toast" role="status" data-rs-toast>
+                <div class="d-flex align-items-start">
+                    <div class="toast-body">
+                        <span class="rs-toast__icon" aria-hidden="true">
+                            @if (toastIsError)
+                            {
+                                <svg width="16" height="16" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="8.5" fill="none" stroke="#f08a76" stroke-width="1.6" />
+                                    <path d="M12 8v5M12 16.2v.1" fill="none" stroke="#f08a76" stroke-width="1.8" stroke-linecap="round" />
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg width="16" height="16" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+                                    <path d="m8.4 12.2 2.4 2.4 4.8-4.9" fill="none" stroke="currentColor"
+                                          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            }
+                        </span>
+                        <span>@toastMessage</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="@T["common.dismiss"]"></button>
+                </div>
+            </div>
+        </div>
+    }
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

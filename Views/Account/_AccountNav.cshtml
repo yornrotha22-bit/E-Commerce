@@ -1,0 +1,23 @@
+@{
+    var active = ViewData["AccountTab"] as string;
+}
+
+<nav class="account-nav" aria-label="@T["nav.account"]">
+    <a class="account-nav-link @(active == "Dashboard" ? "active" : string.Empty)"
+       asp-controller="Account" asp-action="Index">@T["common.dashboard"]</a>
+
+    <a class="account-nav-link @(active == "Orders" ? "active" : string.Empty)"
+       asp-controller="Orders" asp-action="Index">@T["orders.title"]</a>
+
+    <a class="account-nav-link @(active == "Wishlist" ? "active" : string.Empty)"
+       asp-controller="Wishlist" asp-action="Index">@T["common.wishlist"]</a>
+
+    <a class="account-nav-link @(active == "Addresses" ? "active" : string.Empty)"
+       asp-controller="Account" asp-action="Addresses">@T["common.addresses"]</a>
+
+    <a class="account-nav-link @(active == "Profile" ? "active" : string.Empty)"
+       asp-controller="Account" asp-action="Profile">@T["common.profile"]</a>
+
+    <a class="account-nav-link @(active == "Password" ? "active" : string.Empty)"
+       asp-controller="Account" asp-action="ChangePassword">@T["common.password"]</a>
+</nav>

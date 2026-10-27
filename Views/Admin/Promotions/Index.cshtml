@@ -1,0 +1,107 @@
+@model PagedList<AdminCouponRow>
+@{
+    ViewData["Title"] = T["admin.nav.promotions"];
+    var search = ViewData["Search"] as string;
+    var isActive = ViewData["IsActive"] as bool?;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form method="get" class="d-flex flex-wrap gap-2">
+        <input type="search" name="search" value="@search" class="form-control" placeholder="@T["adm.searchCoupon"]" />
+        <select name="isActive" class="form-select">
+            <option value="">@T["adm.all"]</option>
+            <option value="true" selected="@(isActive == true)">@T["adm.active"]</option>
+            <option value="false" selected="@(isActive == false)">@T["adm.inactive"]</option>
+        </select>
+        <button type="submit" class="btn btn-outline-secondary">@T["adm.filter"]</button>
+        @if (!string.IsNullOrWhiteSpace(search) || isActive.HasValue)
+        {
+            <a class="btn btn-link" asp-action="Index">@T["products.reset"]</a>
+        }
+    </form>
+
+    <a class="btn btn-primary" asp-action="Create">@T["adm.newCoupon"]</a>
+</div>
+
+<div class="card admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@T["adm.code"]</th>
+                    <th>@T["checkout.discount"]</th>
+                    <th class="text-end">@T["adm.minOrder"]</th>
+                    <th class="text-end">@T["adm.usage"]</th>
+                    <th>@T["adm.validity"]</th>
+                    <th>@T["dashboard.status"]</th>
+                    <th class="text-end">@T["dashboard.actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">@T["adm.noCoupons"]</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var coupon in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@coupon.Code</td>
+                            <td>
+                                @if (coupon.DiscountType == DiscountType.Percentage)
+                                {
+                                    <span>@coupon.DiscountValue.ToString("0.##")%</span>
+                                }
+                                else
+                                {
+                                    <span>$@coupon.DiscountValue.ToString("N2")</span>
+                                }
+                            </td>
+                            <td class="text-end">$@coupon.MinimumOrderAmount.ToString("N2")</td>
+                            <td class="text-end">
+                                @coupon.UsedCount@(coupon.UsageLimit.HasValue ? $" / {coupon.UsageLimit}" : string.Empty)
+                            </td>
+                            <td class="small text-muted text-nowrap">
+                                @coupon.StartsAt.ToString("yyyy-MM-dd")
+                                @if (coupon.EndsAt.HasValue)
+                                {
+                                    <span>→ @coupon.EndsAt.Value.ToString("yyyy-MM-dd")</span>
+                                }
+                                else
+                                {
+                                    <span>→ @T["adm.noEnd"]</span>
+                                }
+                            </td>
+                            <td>
+                                @if (coupon.IsActive)
+                                {
+                                    <span class="badge text-bg-success">@T["adm.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">@T["adm.inactive"]</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Edit" asp-route-id="@coupon.Id">@T["account.edit"]</a>
+
+                                <form class="d-inline" asp-action="ToggleActive" asp-route-id="@coupon.Id" method="post">
+                                    <button type="submit"
+                                            class="btn btn-sm @(coupon.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                        @(coupon.IsActive ? T["adm.deactivate"] : T["adm.activate"])
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="~/Views/Admin/Shared/_TablePagination.cshtml" model="PaginationViewModel.From(Model)" />
+</div>

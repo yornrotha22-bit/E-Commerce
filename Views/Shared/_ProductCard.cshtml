@@ -1,0 +1,100 @@
+@model ProductCardViewModel
+@{
+    var image = string.IsNullOrWhiteSpace(Model.ImageUrl)
+        ? Url.Content("~/images/placeholder-product.svg")
+        : Model.ImageUrl;
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var stockLabel = Model.InStock ? T["card.inStock"] : T["card.outOfStock"];
+}
+
+<article class="pcard h-100" data-reveal>
+    <div class="pcard__media">
+        <a class="pcard__media-link" asp-area="" asp-controller="Products" asp-action="Details"
+           asp-route-id="@Model.Id" aria-label="@Model.Name">
+            <img src="@image" alt="@Model.Name" loading="lazy"
+                 data-fallback="@Url.Content("~/images/placeholder-product.svg")" />
+        </a>
+
+        <div class="pcard__badges">
+            @if (!Model.InStock)
+            {
+                <span class="rs-badge rs-badge--muted">@T["card.outOfStock"]</span>
+            }
+            else if (Model.HasDiscount)
+            {
+                <span class="rs-badge rs-badge--sale">@T["card.sale"]</span>
+            }
+            else if (Model.IsFeatured)
+            {
+                <span class="rs-badge rs-badge--featured">@T["card.featured"]</span>
+            }
+        </div>
+
+        <form class="pcard__wish" method="post" asp-area="" asp-controller="Wishlist" asp-action="Toggle">
+            <input type="hidden" name="productId" value="@Model.Id" />
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            <button type="submit"
+                    class="pcard__wish-btn @(Model.IsInWishlist ? "is-saved" : null)"
+                    aria-pressed="@(Model.IsInWishlist ? "true" : "false")"
+                    aria-label="@(Model.IsInWishlist ? T["card.removeFromWishlist"] : T["card.saveToWishlist"])"
+                    title="@(Model.IsInWishlist ? T["card.saved"] : T["card.saveToWishlist"])">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 20s-7-4.35-7-9.3A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 7 3.7C19 15.65 12 20 12 20Z"
+                          fill="@(Model.IsInWishlist ? "currentColor" : "none")"
+                          stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                </svg>
+            </button>
+        </form>
+    </div>
+
+    <div class="pcard__body">
+        <div class="pcard__eyebrow">@Model.BrandName</div>
+
+        <a class="pcard__title" asp-area="" asp-controller="Products" asp-action="Details"
+           asp-route-id="@Model.Id">@Model.Name</a>
+
+        <div class="pcard__rating">
+            @if (Model.AverageRating.HasValue)
+            {
+                <span class="pcard__stars" aria-hidden="true">★★★★★</span>
+                <span>@Model.AverageRating.Value.ToString("0.0")</span>
+                <span class="pcard__rating-count">(@Model.ReviewCount)</span>
+            }
+            else
+            {
+                <span class="pcard__rating-count">@T["card.noReviews"]</span>
+            }
+        </div>
+
+        <div class="pcard__meta">
+            <span class="pcard__price">
+                $@Model.MinPrice.ToString("N2")
+                @if (Model.HasPriceRange)
+                {
+                    <small>– $@Model.MaxPrice.ToString("N2")</small>
+                }
+            </span>
+            <span class="pcard__stock @(Model.InStock ? "is-in" : "is-out")">@stockLabel</span>
+        </div>
+
+        @if (Model.InStock && Model.DefaultVariantId.HasValue)
+        {
+            <form method="post" asp-area="" asp-controller="Cart" asp-action="Add"
+                  class="pcard__form" data-loading data-cart-form>
+                <input type="hidden" name="productVariantId" value="@Model.DefaultVariantId" />
+                <input type="hidden" name="quantity" value="1" />
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <span class="btn-label">@T["card.addToCart"]</span>
+                </button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-outline-secondary btn-sm w-100 pcard__oos"
+               asp-area="" asp-controller="Products" asp-action="Details" asp-route-id="@Model.Id">
+                @T["card.viewDetails"]
+            </a>
+        }
+    </div>
+</article>

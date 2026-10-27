@@ -1,0 +1,14 @@
+@model string?
+@{
+    var name = User.Identity?.Name ?? "?";
+    var initial = name.Length > 0 ? name[..1].ToUpperInvariant() : "?";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model))
+{
+    <img class="user-avatar" src="@Model" alt="" />
+}
+else
+{
+    <span class="user-avatar user-avatar--initial" aria-hidden="true">@initial</span>
+}

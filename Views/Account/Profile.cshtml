@@ -1,0 +1,131 @@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = T["common.profile"];
+    ViewData["AccountTab"] = "Profile";
+
+    var initial = string.IsNullOrWhiteSpace(Model.FullName)
+        ? "?"
+        : Model.FullName.Trim()[0].ToString().ToUpperInvariant();
+}
+
+<div class="container storefront py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <partial name="_AccountNav" />
+            <div class="account-meta mt-3">
+                @T["account.signedInAs"]<br />
+                <strong>@User.Identity?.Name</strong>
+            </div>
+        </aside>
+
+        <section class="col-lg-9">
+            <partial name="_AccountAlerts" />
+
+            <div class="card account-card">
+                <div class="card-body p-4">
+                    <h1 class="h4 mb-1">@T["common.profile"]</h1>
+                    <p class="text-muted small mb-4">
+                        @T.Format("account.memberSince", Model.MemberSince.ToString("MMMM yyyy"))
+                    </p>
+
+                    <form asp-action="Profile" method="post" enctype="multipart/form-data" class="row g-3">
+                        <div class="col-12">
+                            <div class="account-avatar">
+                                <div class="account-avatar__preview" data-avatar-preview>
+                                    @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                                    {
+                                        <img src="@Model.AvatarUrl" alt="@T["account.photo"]" data-avatar-image />
+                                    }
+                                    else
+                                    {
+                                        <span class="account-avatar__initial">@initial</span>
+                                    }
+                                </div>
+
+                                <div class="account-avatar__controls">
+                                    <label asp-for="Avatar" class="form-label">@T["account.photo"]</label>
+                                    <input asp-for="Avatar" type="file" class="form-control"
+                                           accept="image/jpeg,image/png,image/webp" data-avatar-input />
+                                    <div class="form-text">@T["account.photoHint"]</div>
+                                    <span asp-validation-for="Avatar" class="text-danger small"></span>
+
+                                    @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                                    {
+                                        <div class="form-check mt-2">
+                                            <input asp-for="RemoveAvatar" class="form-check-input" />
+                                            <label asp-for="RemoveAvatar" class="form-check-label small">
+                                                @T["account.removePhoto"]
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label">@T["account.fullName"]</label>
+                            <input asp-for="FullName" class="form-control" autocomplete="name" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label">@T["account.phone"]</label>
+                            <input asp-for="PhoneNumber" class="form-control" autocomplete="tel" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label">@T["account.email"]</label>
+                            <input asp-for="Email" class="form-control" readonly />
+                            <div class="form-text">
+                                @T["account.emailLocked"]
+                            </div>
+                        </div>
+
+                        <div class="col-12 pt-2">
+                            <button type="submit" class="btn btn-primary">@T["account.saveChanges"]</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var input = document.querySelector('[data-avatar-input]');
+            var preview = document.querySelector('[data-avatar-preview]');
+
+            if (!input || !preview) {
+                return;
+            }
+
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+
+                if (!file || !file.type.startsWith('image/')) {
+                    return;
+                }
+
+                var url = URL.createObjectURL(file);
+                var image = preview.querySelector('img');
+
+                if (!image) {
+                    preview.textContent = '';
+                    image = document.createElement('img');
+                    image.alt = '';
+                    preview.appendChild(image);
+                }
+
+                image.onload = function () {
+                    URL.revokeObjectURL(url);
+                };
+
+                image.src = url;
+            });
+        }());
+    </script>
+}

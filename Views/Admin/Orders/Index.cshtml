@@ -1,0 +1,116 @@
+@model AdminOrderListViewModel
+@{
+    ViewData["Title"] = T["admin.nav.orders"];
+
+    string StatusBadge(OrderStatus value) => value switch
+    {
+        OrderStatus.Pending => "text-bg-warning",
+        OrderStatus.Confirmed => "text-bg-info",
+        OrderStatus.Processing => "text-bg-info",
+        OrderStatus.Shipped => "text-bg-primary",
+        OrderStatus.Delivered => "text-bg-success",
+        OrderStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    string PaymentBadge(PaymentStatus value) => value switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+}
+
+<form method="get" class="card admin-card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1" for="orderSearch">@T["common.search"]</label>
+                <input id="orderSearch" type="search" name="search" value="@Model.Search"
+                       class="form-control" placeholder="@T["adm.orderSearchPlaceholder"]" />
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="orderStatus">@T["adm.orderStatus"]</label>
+                <select id="orderStatus" name="status" class="form-select">
+                    <option value="">@T["adm.all"]</option>
+                    @foreach (var status in Enum.GetValues<OrderStatus>())
+                    {
+                        <option value="@status" selected="@(Model.Status == status)">@T["status." + status]</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1" for="paymentStatus">@T["checkout.payment"]</label>
+                <select id="paymentStatus" name="paymentStatus" class="form-select">
+                    <option value="">@T["adm.all"]</option>
+                    @foreach (var status in Enum.GetValues<PaymentStatus>())
+                    {
+                        <option value="@status" selected="@(Model.PaymentStatus == status)">@T["status." + status]</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-secondary">@T["products.apply"]</button>
+                <a class="btn btn-link" asp-action="Index">@T["products.reset"]</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="card admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@T["dashboard.order"]</th>
+                    <th>@T["dashboard.customer"]</th>
+                    <th>@T["adm.placedAt"]</th>
+                    <th class="text-end">@T["orders.items"]</th>
+                    <th class="text-end">@T["dashboard.total"]</th>
+                    <th>@T["adm.orderStatus"]</th>
+                    <th>@T["dashboard.payment"]</th>
+                    <th class="text-end">@T["dashboard.actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            @T["adm.noOrders"]
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var order in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold text-nowrap">@order.OrderNumber</td>
+                            <td>
+                                <div>@order.CustomerName</div>
+                                <div class="small text-muted">@order.CustomerPhone</div>
+                            </td>
+                            <td class="small text-muted text-nowrap">@order.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end">@order.ItemCount</td>
+                            <td class="text-end text-nowrap">$@order.TotalAmount.ToString("N2")</td>
+                            <td><span class="badge @StatusBadge(order.OrderStatus)">@T["status." + order.OrderStatus]</span></td>
+                            <td><span class="badge @PaymentBadge(order.PaymentStatus)">@T["status." + order.PaymentStatus]</span></td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Details" asp-route-id="@order.Id">@T["dashboard.manage"]</a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="~/Views/Admin/Shared/_TablePagination.cshtml" model="PaginationViewModel.Create(Model.Page, Model.PageSize, Model.TotalItems)" />
+</div>

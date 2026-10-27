@@ -1,0 +1,118 @@
+@model PagedList<AdminPaymentRow>
+@{
+    ViewData["Title"] = T["admin.nav.payments"];
+    var search = ViewData["Search"] as string;
+    var status = ViewData["Status"] as PaymentStatus?;
+
+    string StatusBadge(PaymentStatus value) => value switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+}
+
+<div class="alert alert-info small">
+    @T["adm.paymentsNote"]
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form method="get" class="d-flex flex-wrap gap-2">
+        <input type="search" name="search" value="@search" class="form-control"
+               placeholder="@T["adm.paymentSearchPlaceholder"]" />
+
+        <select name="status" class="form-select">
+            <option value="">@T["adm.allStatuses"]</option>
+            <option value="Pending" selected="@(status == PaymentStatus.Pending)">@T["status.Pending"]</option>
+            <option value="Paid" selected="@(status == PaymentStatus.Paid)">@T["status.Paid"]</option>
+            <option value="Failed" selected="@(status == PaymentStatus.Failed)">@T["status.Failed"]</option>
+            <option value="Refunded" selected="@(status == PaymentStatus.Refunded)">@T["status.Refunded"]</option>
+        </select>
+
+        <button type="submit" class="btn btn-outline-secondary">@T["adm.filter"]</button>
+        @if (!string.IsNullOrWhiteSpace(search) || status.HasValue)
+        {
+            <a class="btn btn-link" asp-action="Index">@T["products.reset"]</a>
+        }
+    </form>
+</div>
+
+<div class="card admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@T["dashboard.order"]</th>
+                    <th>@T["dashboard.customer"]</th>
+                    <th>@T["order.method"]</th>
+                    <th>@T["order.provider"]</th>
+                    <th class="text-end">@T["order.amount"]</th>
+                    <th>@T["dashboard.status"]</th>
+                    <th>@T["adm.createdAt"]</th>
+                    <th class="text-end">@T["dashboard.actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            @T["adm.noPayments"]
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var payment in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">@payment.OrderNumber</span>
+                            </td>
+                            <td>@payment.CustomerName</td>
+                            <td>
+                                @(payment.Method == PaymentMethod.CashOnDelivery
+                                    ? T["checkout.cod"]
+                                    : T["checkout.bankTransfer"])
+                            </td>
+                            <td class="small">@payment.Provider</td>
+                            <td class="text-end text-nowrap">$@payment.Amount.ToString("N2") @payment.Currency</td>
+                            <td>
+                                <span class="badge @StatusBadge(payment.Status)">@T["status." + payment.Status]</span>
+                            </td>
+                            <td class="small text-muted text-nowrap">
+                                @payment.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                @if (payment.PaidAt.HasValue)
+                                {
+                                    <div>@T["adm.paidAt"] @payment.PaidAt.Value.ToString("yyyy-MM-dd HH:mm")</div>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                @if (payment.Status == PaymentStatus.Pending)
+                                {
+                                    <form class="d-inline" asp-action="MarkPaid" asp-route-id="@payment.Id" method="post"
+                                          onsubmit="return confirm('@T["adm.confirmPaid"]');">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">@T["adm.markPaid"]</button>
+                                    </form>
+
+                                    <form class="d-inline" asp-action="MarkFailed" asp-route-id="@payment.Id" method="post"
+                                          onsubmit="return confirm('@T["adm.confirmFailed"]');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">@T["adm.markFailed"]</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="~/Views/Admin/Shared/_TablePagination.cshtml" model="PaginationViewModel.From(Model)" />
+</div>

@@ -1,0 +1,46 @@
+@model CategoryFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="col-12 text-danger small"></div>
+
+<div class="col-md-6">
+    <label asp-for="Name" class="form-label">@T["adm.name"]</label>
+    <input asp-for="Name" class="form-control" autocomplete="off" />
+    <span asp-validation-for="Name" class="text-danger small"></span>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="Slug" class="form-label">@T["adm.slug"]</label>
+    <input asp-for="Slug" class="form-control" placeholder="@T["adm.slugHint"]" />
+    <span asp-validation-for="Slug" class="text-danger small"></span>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="ParentId" class="form-label">@T["adm.parentCategory"]</label>
+    <select asp-for="ParentId" asp-items="Model.ParentOptions" class="form-select"></select>
+    <span asp-validation-for="ParentId" class="text-danger small"></span>
+</div>
+
+<div class="col-md-3">
+    <label asp-for="DisplayOrder" class="form-label">@T["adm.displayOrder"]</label>
+    <input asp-for="DisplayOrder" class="form-control" type="number" min="0" max="999" />
+    <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
+</div>
+
+<div class="col-md-3 d-flex align-items-end">
+    <div class="form-check mb-2">
+        <input asp-for="IsActive" class="form-check-input" />
+        <label asp-for="IsActive" class="form-check-label">@T["adm.active"]</label>
+    </div>
+</div>
+
+<div class="col-md-6">
+    <label asp-for="ImageUrl" class="form-label">@T["adm.imageUrl"]</label>
+    <input asp-for="ImageUrl" class="form-control" placeholder="https://example.com/category.jpg" />
+    <span asp-validation-for="ImageUrl" class="text-danger small"></span>
+</div>
+
+<div class="col-12">
+    <label asp-for="Description" class="form-label">@T["details.description"]</label>
+    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+    <span asp-validation-for="Description" class="text-danger small"></span>
+</div>

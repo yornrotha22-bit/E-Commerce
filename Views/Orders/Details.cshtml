@@ -1,0 +1,367 @@
+﻿@model OrderDetailsViewModel
+@{
+    var order = Model.Order;
+    var placeholder = Url.Content("~/images/placeholder-product.svg");
+    var payment = order.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault();
+    var orderMessage = TempData["OrderMessage"] as string;
+    var orderMessageType = TempData["OrderMessageType"] as string ?? "info";
+
+    string OrderBadge(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "text-bg-warning",
+        OrderStatus.Confirmed => "text-bg-info",
+        OrderStatus.Processing => "text-bg-info",
+        OrderStatus.Shipped => "text-bg-primary",
+        OrderStatus.Delivered => "text-bg-success",
+        OrderStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    string PaymentBadge(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    // Presentation only: the stepper mirrors the status flow, it never drives it.
+    var flow = new[]
+    {
+        OrderStatus.Pending,
+        OrderStatus.Confirmed,
+        OrderStatus.Processing,
+        OrderStatus.Shipped,
+        OrderStatus.Delivered
+    };
+    var isCancelled = order.OrderStatus == OrderStatus.Cancelled;
+    var currentStep = Array.IndexOf(flow, order.OrderStatus);
+    var history = order.StatusHistory.OrderBy(h => h.CreatedAt).ToList();
+}
+
+<div class="container storefront py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <partial name="~/Views/Account/_AccountNav.cshtml" />
+        </aside>
+
+        <section class="col-lg-9" data-reveal-group>
+            @if (TempData["OrderSuccess"] is string success)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @success
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["common.close"]"></button>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(orderMessage))
+            {
+                <div class="alert alert-@orderMessageType alert-dismissible fade show" role="alert">
+                    @orderMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["common.close"]"></button>
+                </div>
+            }
+
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3" data-reveal>
+                <div>
+                    <h1 class="h4 mb-1">@T.Format("order.title", order.OrderNumber)</h1>
+                    <p class="text-muted small mb-0">
+                        @(order.Items.Sum(i => i.Quantity) == 1
+                            ? T.Format("order.placedOne", order.CreatedAt.ToString("yyyy-MM-dd HH:mm"), 1)
+                            : T.Format("order.placed", order.CreatedAt.ToString("yyyy-MM-dd HH:mm"), order.Items.Sum(i => i.Quantity)))
+                    </p>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="badge @OrderBadge(order.OrderStatus)">@T["status." + order.OrderStatus]</span>
+                    <span class="badge @PaymentBadge(order.PaymentStatus)">@T["dashboard.payment"]: @T["status." + order.PaymentStatus]</span>
+
+                    @if (Model.CanCancel)
+                    {
+                        <form asp-action="Cancel" asp-route-id="@order.Id" method="post"
+                              onsubmit="return confirm('@T["order.cancelConfirm"]');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["order.cancel"]</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            @if (order.OrderStatus == OrderStatus.Cancelled)
+            {
+                <div class="alert alert-secondary" role="alert">
+                    @(string.IsNullOrWhiteSpace(order.CancellationReason)
+                        ? T["order.cancelled"]
+                        : T.Format("order.cancelledReason", order.CancellationReason))
+                </div>
+            }
+            else
+            {
+                <ol class="rs-stepper" aria-label="@T["order.progress"]">
+                    @for (var i = 0; i < flow.Length; i++)
+                    {
+                        var state = currentStep < 0
+                            ? "is-todo"
+                            : i < currentStep ? "is-done" : i == currentStep ? "is-current" : "is-todo";
+
+                        <li class="rs-stepper__step @state" aria-current="@(i == currentStep ? "step" : null)">
+                            <span class="rs-stepper__dot" aria-hidden="true"></span>
+                            <span class="rs-stepper__label">@T["status." + flow[i]]</span>
+                        </li>
+                    }
+                </ol>
+            }
+
+            <div class="card order-card" data-reveal>
+                <div class="card-header">@T["order.items"]</div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["cartPage.product"]</th>
+                                <th class="text-end">@T["order.unitPrice"]</th>
+                                <th class="text-end">@T["order.qty"]</th>
+                                <th class="text-end">@T["cartPage.total"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in order.Items)
+                            {
+                                var image = string.IsNullOrWhiteSpace(item.ImageUrl) ? placeholder : item.ImageUrl;
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <img src="@image" alt="@item.ProductName" class="cart-thumb" />
+                                            <div>
+                                                <a class="fw-semibold" asp-controller="Products" asp-action="Details"
+                                                   asp-route-id="@item.ProductId">@item.ProductName</a>
+                                                <div class="small text-muted">SKU: @item.SKU</div>                                                @if (!string.IsNullOrWhiteSpace(item.VariantDescription))
+                                                {
+                                                    <div class="small text-muted">@item.VariantDescription</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-nowrap">$@item.UnitPrice.ToString("N2")</td>
+                                    <td class="text-end">@item.Quantity</td>
+                                    <td class="text-end text-nowrap fw-semibold">$@item.LineTotal.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1" data-reveal-group>
+                <div class="col-md-6" data-reveal>
+                    <div class="card order-card h-100">
+                        <div class="card-header">@T["order.shippingAddress"]</div>
+                        <div class="card-body small">
+                            <div class="fw-semibold">@order.CustomerName</div>
+                            <div class="text-muted mb-2">@order.CustomerPhone</div>
+                            <address class="mb-0">
+                                @order.ShippingAddressLine1
+                                @if (!string.IsNullOrWhiteSpace(order.ShippingAddressLine2))
+                                {
+                                    <br />
+                                    @order.ShippingAddressLine2
+                                }
+                                <br />
+                                @order.ShippingCity@(string.IsNullOrWhiteSpace(order.ShippingState) ? string.Empty : ", " + order.ShippingState)
+                                @if (!string.IsNullOrWhiteSpace(order.ShippingPostalCode))
+                                {
+                                    <text>, </text>@order.ShippingPostalCode
+                                }
+                                <br />
+                                @order.ShippingCountry
+                            </address>
+                            @if (!string.IsNullOrWhiteSpace(order.Notes))
+                            {
+                                <hr />
+                                <div class="text-muted">@T["order.notes"]: @order.Notes</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6" data-reveal>
+                    <div class="card order-card h-100">
+                        <div class="card-header">@T["checkout.payment"]</div>
+                        <div class="card-body small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">@T["order.method"]</span>
+                                <span>
+                                    @(order.PaymentMethod == PaymentMethod.CashOnDelivery
+                                        ? T["checkout.cod"]
+                                        : T["order.onlinePayment"])
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">@T["dashboard.status"]</span>
+                                <span class="badge @PaymentBadge(order.PaymentStatus)">@T["status." + order.PaymentStatus]</span>
+                            </div>
+                            @if (payment is not null)
+                            {
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">@T["order.provider"]</span>
+                                    <span>@payment.Provider</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">@T["order.amount"]</span>
+                                    <span>$@payment.Amount.ToString("N2") @payment.Currency</span>
+                                </div>
+                            }
+                            @if (order.PaymentStatus == PaymentStatus.Pending)
+                            {
+                                <div class="text-muted mt-2">
+                                    @(order.PaymentMethod == PaymentMethod.CashOnDelivery
+                                        ? T["order.codPendingNote"]
+                                        : payment?.Provider == "BAKONG"
+                                            ? T["order.bakongPendingNote"]
+                                            : T["order.transferPendingNote"])
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.PaymentInstructions is not null)
+            {
+                <div class="card order-card mt-3">
+                    <div class="card-header">@Model.PaymentInstructions.Title</div>
+                    <div class="card-body">
+                        @if (Model.PaymentInstructions.IsBakong && Model.PaymentInstructions.QrImageDataUrl is not null)
+                        {
+                            <div class="text-center mb-3">
+                                <img src="@Model.PaymentInstructions.QrImageDataUrl" alt="Bakong KHQR payment code" class="img-fluid border rounded p-2" style="width: min(100%, 320px);" />
+                                <div class="small text-muted mt-2">@T["msg.bakongExpires"] @Model.PaymentInstructions.ExpiresAt?.ToString("HH:mm:ss") UTC</div>
+                                <a class="btn btn-sm btn-outline-secondary mt-2" asp-action="Details" asp-route-id="@order.Id">@T["msg.bakongRefreshQr"]</a>
+                            </div>
+                        }
+                        <ul class="list-unstyled small mb-3">
+                            @foreach (var line in Model.PaymentInstructions.Lines)
+                            {
+                                <li class="mb-1">@line</li>
+                            }
+                        </ul>
+
+                        @if (Model.PaymentInstructions.IsBakong)
+                        {
+                            <div class="alert alert-info small mb-0" role="status" data-bakong-payment-status
+                                 data-check-url="@Url.Action("CheckBakongPayment", "Orders", new { id = order.Id })">
+                                @Html.AntiForgeryToken()
+                                @T["msg.bakongWaiting"]
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning small mb-0" role="alert">
+                                These instructions are not proof of payment. The order stays pending until
+                                staff verify the transfer.
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="card order-card mt-3" data-reveal>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">@T["cart.subtotal"]</span>
+                        <span>$@order.Subtotal.ToString("N2")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">@T["cart.shipping"]</span>
+                        <span>
+                            @if (order.ShippingFee == 0)
+                            {
+                                <span class="text-success">@T["cart.free"]</span>
+                            }
+                            else
+                            {
+                                <span>$@order.ShippingFee.ToString("N2")</span>
+                            }
+                        </span>
+                    </div>
+                    @if (order.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-1 text-success">
+                            <span>@T["checkout.discount"]@(string.IsNullOrWhiteSpace(order.CouponCode) ? string.Empty : $" ({order.CouponCode})")</span>
+                            <span>-$@order.DiscountAmount.ToString("N2")</span>
+                        </div>
+                    }
+                    <hr />
+                    <div class="d-flex justify-content-between fw-bold fs-5">
+                        <span>@T["cartPage.total"]</span>
+                        <span>$@order.TotalAmount.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card order-card mt-3" data-reveal>
+                <div class="card-header">@T["order.statusHistory"]</div>
+                <div class="card-body">
+                    <ul class="timeline mb-0">
+                        @for (var i = 0; i < history.Count; i++)
+                        {
+                            var entry = history[i];
+                            var isLatest = i == history.Count - 1;
+
+                            <li class="timeline-item @(isLatest ? "is-latest" : null)">
+                                <div class="d-flex justify-content-between gap-2">
+                                    <span class="fw-semibold">@T["status." + entry.ToStatus]</span>
+                                    <span class="small text-muted">@entry.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(entry.Note))
+                                {
+                                    <div class="small text-muted">@entry.Note</div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a class="btn btn-outline-secondary" asp-action="Index">@T["order.backToOrders"]</a>
+            </div>
+        </section>
+    </div>
+</div>
+
+@if (Model.PaymentInstructions?.IsBakong == true)
+{
+    @section Scripts {
+        <script>
+            (() => {
+                const statusBox = document.querySelector('[data-bakong-payment-status]');
+                if (!statusBox) return;
+                const url = statusBox.dataset.checkUrl;
+                const token = statusBox.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                let attempts = 0;
+                const poll = async () => {
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Accept': 'application/json', 'RequestVerificationToken': token }
+                        });
+                        if (!response.ok) return;
+                        const result = await response.json();
+                        if (result.status === 'Paid') {
+                            statusBox.classList.remove('alert-info');
+                            statusBox.classList.add('alert-success');
+                            statusBox.textContent = result.message;
+                            window.location.reload();
+                            return;
+                        }
+                        if (result.message) statusBox.textContent = result.message;
+                    } catch { /* Keep the QR visible if a temporary network error occurs. */ }
+                    if (++attempts < 150) window.setTimeout(poll, 4000);
+                };
+                window.setTimeout(poll, 2500);
+            })();
+        </script>
+    }
+}

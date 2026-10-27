@@ -1,0 +1,21 @@
+@model CategoryFormViewModel
+@{
+    ViewData["Title"] = T["adm.newCategory"];
+}
+
+<div class="card admin-card">
+    <div class="card-body">
+        <form asp-action="Create" method="post" class="row g-3">
+            <partial name="_Form" model="Model" />
+
+            <div class="col-12 d-flex gap-2 pt-2">
+                <button type="submit" class="btn btn-primary">@T["adm.createCategory"]</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">@T["account.cancel"]</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

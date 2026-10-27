@@ -1,0 +1,28 @@
+@model ProductFormViewModel
+@{
+    ViewData["Title"] = T["dashboard.newProduct"];
+}
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" class="card admin-card">
+    <div class="card-body row g-3">
+        <partial name="_ProductForm" model="Model" />
+
+        <div class="col-12 d-flex gap-2 pt-2">
+            @if (Model.SimilarProducts.Count > 0)
+            {
+                <button type="submit" name="SimilarProductConfirmation" value="@Model.SimilarProductConfirmation"
+                        class="btn btn-primary">@T["adm.createSimilarProductAnyway"]</button>
+            }
+            else
+            {
+                <button type="submit" class="btn btn-primary">@T["adm.createProduct"]</button>
+            }
+            <a class="btn btn-outline-secondary" asp-action="Index">@T["account.cancel"]</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/admin-products.js" asp-append-version="true"></script>
+}

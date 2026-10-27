@@ -1,0 +1,107 @@
+@model PagedList<OrderListItemViewModel>
+@{
+    ViewData["Title"] = T["orders.title"];
+
+    string OrderBadge(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "text-bg-warning",
+        OrderStatus.Confirmed => "text-bg-info",
+        OrderStatus.Processing => "text-bg-info",
+        OrderStatus.Shipped => "text-bg-primary",
+        OrderStatus.Delivered => "text-bg-success",
+        OrderStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    string PaymentBadge(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+}
+
+<div class="container storefront py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <partial name="~/Views/Account/_AccountNav.cshtml" />
+        </aside>
+
+        <section class="col-lg-9">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h1 class="h4 mb-1">@T["orders.title"]</h1>
+                    <p class="text-muted small mb-0">@T["orders.subtitle"]</p>
+                </div>
+                <a class="btn btn-outline-secondary btn-sm" asp-controller="Products" asp-action="Index">
+                    @T["common.continueShopping"]
+                </a>
+            </div>
+
+            @if (Model.Items.Count == 0)
+            {
+                <div class="empty-state">
+                    <h2 class="h5">@T["orders.emptyTitle"]</h2>
+                    <p class="text-muted mb-3">@T["orders.emptyText"]</p>
+                    <a class="btn btn-primary" asp-controller="Products" asp-action="Index">@T["cart.browse"]</a>
+                </div>
+            }
+            else
+            {
+                <div class="card order-card" data-reveal>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@T["dashboard.order"]</th>
+                                    <th>@T.Format("orders.placedAt", "UTC")</th>
+                                    <th class="text-end">@T["orders.items"]</th>
+                                    <th class="text-end">@T["dashboard.total"]</th>
+                                    <th>@T["dashboard.status"]</th>
+                                    <th>@T["dashboard.payment"]</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.Items)
+                                {
+                                    <tr class="rs-order-row">
+                                        <td class="fw-semibold text-nowrap">@order.OrderNumber</td>
+                                        <td class="small text-muted text-nowrap">
+                                            @order.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                        </td>
+                                        <td class="text-end">@order.ItemCount</td>
+                                        <td class="text-end text-nowrap">$@order.TotalAmount.ToString("N2")</td>
+                                        <td>
+                                            <span class="badge @OrderBadge(order.OrderStatus)">@T["status." + order.OrderStatus]</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @PaymentBadge(order.PaymentStatus)">@T["status." + order.PaymentStatus]</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a class="btn btn-sm btn-outline-secondary"
+                                               asp-action="Details" asp-route-id="@order.Id">@T["dashboard.view"]</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="d-flex justify-content-between align-items-center gap-2 mt-3" aria-label="@T["products.pagination"]">
+                        <a class="btn btn-sm btn-outline-secondary @(Model.HasPrevious ? string.Empty : "disabled")"
+                           asp-action="Index" asp-route-page="@(Model.Page - 1)">@T["products.previous"]</a>
+                        <span class="small text-muted">@T.Format("orders.pageOf", Model.Page, Model.TotalPages)</span>
+                        <a class="btn btn-sm btn-outline-secondary @(Model.HasNext ? string.Empty : "disabled")"
+                           asp-action="Index" asp-route-page="@(Model.Page + 1)">@T["products.next"]</a>
+                    </nav>
+                }
+            }
+        </section>
+    </div>
+</div>

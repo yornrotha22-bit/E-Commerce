@@ -1,0 +1,282 @@
+﻿@model CheckoutViewModel
+@{
+    ViewData["Title"] = T["checkout.title"];
+    var placeholder = Url.Content("~/images/placeholder-product.svg");
+    var couponNotice = TempData["CouponNotice"] as string;
+    var couponNoticeType = TempData["CouponNoticeType"] as string ?? "info";
+}
+
+<div class="container storefront py-4">
+    <nav class="breadcrumb-line" aria-label="@T["common.breadcrumb"]">
+        <a asp-controller="Home" asp-action="Index">@T["nav.home"]</a>
+        <span>/</span>
+        <a asp-controller="Cart" asp-action="Index">@T["cart.title"]</a>
+        <span>/</span>
+        <span aria-current="page">@T["checkout.title"]</span>
+    </nav>
+
+    <h1 class="h3 mb-4">@T["checkout.title"]</h1>
+
+    @if (!string.IsNullOrWhiteSpace(couponNotice))
+    {
+        <div class="alert alert-@couponNoticeType alert-dismissible fade show" role="alert">
+            @couponNotice
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["common.close"]"></button>
+        </div>
+    }
+
+    <div class="row g-4" data-reveal-group>
+        <div class="col-lg-7" data-reveal>
+            <form asp-action="PlaceOrder" method="post" id="checkoutForm" class="card checkout-card" data-loading>
+                <div class="card-body p-4">
+                    <h2 class="h6 mb-3">@T["checkout.shippingDetails"]</h2>
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    @if (Model.SavedAddresses.Count > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label" for="savedAddress">@T["checkout.savedAddresses"]</label>
+                            <select id="savedAddress" class="form-select" data-checkout-address>
+                                <option value="">@T["checkout.newAddress"]</option>
+                                @foreach (var address in Model.SavedAddresses)
+                                {
+                                    <option value="@address.Id"
+                                            data-fullname="@address.FullName"
+                                            data-phone="@address.PhoneNumber"
+                                            data-line1="@address.AddressLine1"
+                                            data-line2="@address.AddressLine2"
+                                            data-city="@address.City"
+                                            data-state="@address.State"
+                                            data-postal="@address.PostalCode"
+                                            data-country="@address.Country"
+                                            selected="@(Model.SelectedAddressId == address.Id)">
+                                        @address.FullName — @address.AddressLine1, @address.City
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text">@T["checkout.savedAddressHint"]</div>
+                        </div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" autocomplete="name" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control" autocomplete="tel" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" autocomplete="email" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="AddressLine1" class="form-label"></label>
+                            <input asp-for="AddressLine1" class="form-control" autocomplete="address-line1" />
+                            <span asp-validation-for="AddressLine1" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="AddressLine2" class="form-label"></label>
+                            <input asp-for="AddressLine2" class="form-control" autocomplete="address-line2" />
+                            <span asp-validation-for="AddressLine2" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" autocomplete="address-level2" />
+                            <span asp-validation-for="City" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="State" class="form-label"></label>
+                            <input asp-for="State" class="form-control" autocomplete="address-level1" />
+                            <span asp-validation-for="State" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PostalCode" class="form-label"></label>
+                            <input asp-for="PostalCode" class="form-control" autocomplete="postal-code" />
+                            <span asp-validation-for="PostalCode" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Country" class="form-label"></label>
+                            <input asp-for="Country" class="form-control" autocomplete="country-name" />
+                            <span asp-validation-for="Country" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"
+                                      placeholder="@T["checkout.notesPlaceholder"]"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <h2 class="h6 mt-4 mb-2">@T["checkout.payment"]</h2>
+
+                    <div class="rs-pay">
+                        <label class="rs-pay__option">
+                            <input class="form-check-input" type="radio" name="PaymentMethod" id="paymentCod"
+                                   value="CashOnDelivery"
+                                   checked="@(Model.PaymentMethod == PaymentMethod.CashOnDelivery)" />
+                            <span class="rs-pay__body">
+                                <span class="rs-pay__title">@T["checkout.cod"]</span>
+                                <span class="rs-pay__note">@T["checkout.codNote"]</span>
+                            </span>
+                        </label>
+
+                        <label class="rs-pay__option @(Model.OnlinePaymentAvailable ? null : "is-disabled")">
+                            <input class="form-check-input" type="radio" name="PaymentMethod" id="paymentOnline"
+                                   value="OnlinePayment"
+                                   checked="@(Model.PaymentMethod == PaymentMethod.OnlinePayment)"
+                                   disabled="@(!Model.OnlinePaymentAvailable)" />
+                            <span class="rs-pay__body">
+                                <span class="rs-pay__title">
+                                    @T["checkout.bakongQr"]
+                                    @if (!Model.OnlinePaymentAvailable)
+                                    {
+                                        <span class="rs-pay__tag">@T["checkout.unavailable"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rs-pay__tag rs-pay__tag--info">@T["checkout.autoVerification"]</span>
+                                    }
+                                </span>
+                                <span class="rs-pay__note">
+                                    @if (!Model.OnlinePaymentAvailable)
+                                    {
+                                        @Model.OnlinePaymentUnavailableReason
+                                    }
+                                    else
+                                    {
+                                        <text>@T["checkout.bakongNote"]</text>
+                                    }
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
+
+                    <div class="form-check mt-3">
+                        <input asp-for="SaveAddress" class="form-check-input" />
+                        <label asp-for="SaveAddress" class="form-check-label">@T["checkout.saveAddress"]</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-5" data-reveal>
+            <form asp-action="ApplyCoupon" method="post" class="card coupon-card mb-3" data-loading>
+                <div class="card-body">
+                    <label for="couponCode" class="form-label small mb-1">@T["checkout.couponCode"]</label>
+                    <div class="d-flex gap-2">
+                        <input id="couponCode" name="couponCode" value="@Model.CouponCode"
+                               class="form-control form-control-sm" placeholder="@T["checkout.couponPlaceholder"]" />
+                        <button type="submit" class="btn btn-sm btn-outline-primary">@T["checkout.apply"]</button>
+                    </div>
+
+                    @if (Model.CouponApplied)
+                    {
+                        <div class="rs-coupon-note is-ok">
+                            <span class="rs-coupon-note__dot" aria-hidden="true"></span>@Model.CouponMessage
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(Model.CouponMessage))
+                    {
+                        <div class="rs-coupon-note is-error">@Model.CouponMessage</div>
+                    }
+                </div>
+            </form>
+
+            @if (Model.CouponApplied)
+            {
+                <form asp-action="RemoveCoupon" method="post" class="mb-3">
+                    <button type="submit" class="btn btn-sm btn-link p-0">@T["checkout.removeCoupon"]</button>
+                </form>
+            }
+
+            <div class="card cart-summary rs-checkout-summary">
+                <div class="card-body">
+                    <h2 class="h6 mb-3">@T["checkout.summary"]</h2>
+
+                    @foreach (var item in Model.Cart.Items)
+                    {
+                        <div class="d-flex justify-content-between gap-2 small mb-2 rs-summary-line">
+                            <div>
+                                <div class="fw-semibold">@item.ProductName</div>
+                                <div class="text-muted">
+                                    @item.VariantLabel · @item.Quantity × $@item.UnitPrice.ToString("N2")
+                                </div>
+                            </div>
+                            <span class="text-nowrap">$@item.LineTotal.ToString("N2")</span>
+                        </div>
+                    }
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">@T["cart.subtotal"]</span>
+                        <span>$@Model.Cart.Subtotal.ToString("N2")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">@T["cart.shipping"]</span>
+                        <span>
+                            @if (Model.Cart.ShippingFee == 0)
+                            {
+                                <span class="text-success">@T["cart.free"]</span>
+                            }
+                            else
+                            {
+                                <span>$@Model.Cart.ShippingFee.ToString("N2")</span>
+                            }
+                        </span>
+                    </div>
+
+                    @if (Model.CouponApplied && Model.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>@T["checkout.discount"] (@Model.CouponCode)</span>
+                            <span>-$@Model.DiscountAmount.ToString("N2")</span>
+                        </div>
+                    }
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between fw-bold fs-5 mb-3 rs-summary-total">
+                        <span>@T["cartPage.total"]</span>
+                        <span>$@Model.Total.ToString("N2")</span>
+                    </div>
+
+                    <button type="submit" form="checkoutForm" class="btn btn-primary w-100">
+                        @T["checkout.placeOrder"]
+                    </button>
+
+                    <p class="small text-muted mt-3 mb-0">
+                        @T["checkout.note"]
+                    </p>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <a class="small" asp-controller="Cart" asp-action="Index">@T["checkout.backToCart"]</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/checkout.js" asp-append-version="true"></script>
+}

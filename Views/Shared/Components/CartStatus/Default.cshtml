@@ -1,0 +1,21 @@
+@model int
+@{
+    var ariaLabel = Model == 1
+        ? T.Format("cart.ariaLabelOne", Model)
+        : T.Format("cart.ariaLabel", Model);
+}
+
+<a class="rs-icon-btn rs-cart @(Model > 0 ? "has-items" : null)" asp-area=""
+   asp-controller="Cart" asp-action="Index"
+   data-cart-toggle data-cart-badge
+   data-cart-label-one="@T["cart.ariaLabelOne"]"
+   data-cart-label-many="@T["cart.ariaLabel"]"
+   aria-label="@ariaLabel" title="@T["common.cart"]">
+    <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 8h12l-1.1 10.2a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 8Z"
+              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+        <path d="M9.2 8V6.6a2.8 2.8 0 0 1 5.6 0V8" fill="none" stroke="currentColor"
+              stroke-width="1.6" stroke-linecap="round" />
+    </svg>
+    <span class="rs-cart__badge @(Model == 0 ? "is-empty" : null)">@Model</span>
+</a>

@@ -1,0 +1,289 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = T["account.dashboardTitle"];
+    ViewData["AccountTab"] = "Dashboard";
+
+    string OrderBadge(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "text-bg-warning",
+        OrderStatus.Confirmed => "text-bg-info",
+        OrderStatus.Processing => "text-bg-info",
+        OrderStatus.Shipped => "text-bg-primary",
+        OrderStatus.Delivered => "text-bg-success",
+        OrderStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    string PaymentBadge(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    var displayName = string.IsNullOrWhiteSpace(Model.FullName) ? User.Identity?.Name : Model.FullName;
+    var cartHint = Model.CartItemCount == 0
+        ? T["account.statCartEmpty"]
+        : T.Format(Model.CartItemCount == 1 ? "account.statCartHintOne" : "account.statCartHint", Model.CartItemCount);
+    var placeholder = Url.Content("~/images/placeholder-product.svg");
+}
+
+<div class="container storefront py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <partial name="_AccountNav" />
+            <div class="account-meta mt-3">
+                @T["account.signedInAs"]<br />
+                <strong>@Model.Email</strong>
+            </div>
+        </aside>
+
+        <section class="col-lg-9" data-reveal-group>
+            <partial name="_AccountAlerts" />
+
+            <header class="account-hero rs-tech-bg">
+                <span class="rs-tech-bg__scan" aria-hidden="true"></span>
+                <div class="account-hero__content">
+                    <span class="rs-eyebrow">@T["account.dashboardEyebrow"]</span>
+                    <h1 class="account-hero__title">@T.Format("account.dashboardHeading", displayName)</h1>
+                    <p class="account-hero__text">@T["account.dashboardSubtitle"]</p>
+                    <div class="account-hero__meta">
+                        <span>@T.Format("account.memberSince", Model.MemberSince.ToString("MMMM yyyy"))</span>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                            @T["account.totalSpent"]:
+                            <strong>$@Model.TotalSpent.ToString("N2")</strong>
+                            <span class="account-hero__muted">(@T["account.totalSpentText"])</span>
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            @if (Model.ActionNeededOrder is not null)
+            {
+                <div class="account-notice" role="status">
+                    <span class="account-notice__icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+                            <path d="M12 7.6v5.2M12 16.3v.1" fill="none" stroke="currentColor"
+                                  stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                    </span>
+                    <div class="account-notice__body">
+                        <strong>@T["account.actionNeeded"]</strong>
+                        <p class="mb-0">
+                            @(Model.ActionNeededIsPayment
+                                ? T.Format("account.actionPaymentText", Model.ActionNeededOrder.OrderNumber)
+                                : T.Format("account.actionConfirmText", Model.ActionNeededOrder.OrderNumber))
+                        </p>
+                    </div>
+                    <a class="btn btn-primary btn-sm" asp-controller="Orders" asp-action="Details"
+                       asp-route-id="@Model.ActionNeededOrder.Id">@T["account.reviewOrder"]</a>
+                </div>
+            }
+
+            <div class="account-stats">
+                <a class="account-stat" asp-controller="Orders" asp-action="Index">
+                    <span class="account-stat__label">@T["account.statOrders"]</span>
+                    <span class="account-stat__value">@Model.OrderCount</span>
+                    <span class="account-stat__hint">
+                        @(Model.OpenOrderCount > 0
+                            ? T.Format("account.statOrdersHint", Model.OpenOrderCount)
+                            : T["account.statOrdersEmpty"])
+                    </span>
+                </a>
+
+                <a class="account-stat" asp-controller="Wishlist" asp-action="Index">
+                    <span class="account-stat__label">@T["account.statWishlist"]</span>
+                    <span class="account-stat__value">@Model.WishlistCount</span>
+                    <span class="account-stat__hint">
+                        @(Model.WishlistCount > 0
+                            ? T.Format("account.statWishlistHint", Model.WishlistCount)
+                            : T["account.statWishlistEmpty"])
+                    </span>
+                </a>
+
+                <a class="account-stat" asp-action="Addresses">
+                    <span class="account-stat__label">@T["account.statAddresses"]</span>
+                    <span class="account-stat__value">@Model.AddressCount</span>
+                    <span class="account-stat__hint">
+                        @(Model.AddressCount > 0
+                            ? T.Format("account.statAddressesHint", Model.AddressCount)
+                            : T["account.statAddressesEmpty"])
+                    </span>
+                </a>
+
+                <a class="account-stat" asp-controller="Cart" asp-action="Index">
+                    <span class="account-stat__label">@T["account.statCart"]</span>
+                    <span class="account-stat__value">@Model.CartItemCount</span>
+                    <span class="account-stat__hint">@cartHint</span>
+                </a>
+            </div>
+
+            <div class="card order-card mb-4" data-reveal>
+                <div class="card-header account-panel__head">
+                    <div>
+                        <h2 class="h6 mb-0">@T["account.recentOrders"]</h2>
+                        <span class="account-panel__hint">@T["account.recentOrdersText"]</span>
+                    </div>
+                    <a class="btn btn-sm btn-outline-secondary" asp-controller="Orders" asp-action="Index">
+                        @T["account.viewAllOrders"]
+                    </a>
+                </div>
+
+                @if (Model.RecentOrders.Count == 0)
+                {
+                    <div class="card-body">
+                        <div class="empty-state border-0">
+                            <h3 class="h6">@T["account.noOrdersYet"]</h3>
+                            <p class="text-muted small mb-3">@T["account.noOrdersText"]</p>
+                            <a class="btn btn-primary btn-sm" asp-controller="Products" asp-action="Index">
+                                @T["cart.browse"]
+                            </a>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>@T["dashboard.order"]</th>
+                                    <th>@T["dashboard.date"]</th>
+                                    <th class="text-end">@T["orders.items"]</th>
+                                    <th class="text-end">@T["dashboard.total"]</th>
+                                    <th>@T["dashboard.status"]</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.RecentOrders)
+                                {
+                                    <tr class="rs-order-row">
+                                        <td class="fw-semibold text-nowrap">@order.OrderNumber</td>
+                                        <td class="small text-muted text-nowrap">
+                                            @order.CreatedAt.ToString("yyyy-MM-dd")
+                                        </td>
+                                        <td class="text-end">@order.ItemCount</td>
+                                        <td class="text-end text-nowrap">$@order.TotalAmount.ToString("N2")</td>
+                                        <td class="text-nowrap">
+                                            <span class="badge @OrderBadge(order.OrderStatus)">@T["status." + order.OrderStatus]</span>
+                                            @if (order.PaymentStatus != PaymentStatus.Paid)
+                                            {
+                                                <span class="badge @PaymentBadge(order.PaymentStatus)">@T["status." + order.PaymentStatus]</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a class="btn btn-sm btn-outline-secondary"
+                                               asp-controller="Orders" asp-action="Details"
+                                               asp-route-id="@order.Id">@T["dashboard.view"]</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card account-card h-100" data-reveal>
+                        <div class="card-body">
+                            <div class="account-panel__head">
+                                <div>
+                                    <h2 class="h6 mb-0">@T["account.defaultAddress"]</h2>
+                                    <span class="account-panel__hint">@T["account.defaultAddressText"]</span>
+                                </div>
+                                <a class="small" asp-action="Addresses">@T["account.manageAddresses"]</a>
+                            </div>
+
+                            @if (Model.DefaultAddress is null)
+                            {
+                                <p class="text-muted small mb-2">@T["account.noDefaultAddressText"]</p>
+                                <a class="btn btn-sm btn-outline-primary" asp-action="CreateAddress">
+                                    @T["account.addAddress"]
+                                </a>
+                            }
+                            else
+                            {
+                                <strong>@Model.DefaultAddress.FullName</strong>
+                                @if (Model.DefaultAddress.IsDefault)
+                                {
+                                    <span class="badge text-bg-primary ms-1">@T["account.defaultBadge"]</span>
+                                }
+                                <div class="small text-muted mb-2">@Model.DefaultAddress.PhoneNumber</div>
+                                <address class="small mb-0">
+                                    @Model.DefaultAddress.AddressLine1
+                                    @if (!string.IsNullOrWhiteSpace(Model.DefaultAddress.AddressLine2))
+                                    {
+                                        <br />
+                                        @Model.DefaultAddress.AddressLine2
+                                    }
+                                    <br />
+                                    @Model.DefaultAddress.City@(string.IsNullOrWhiteSpace(Model.DefaultAddress.State) ? string.Empty : ", " + Model.DefaultAddress.State)
+                                    @if (!string.IsNullOrWhiteSpace(Model.DefaultAddress.PostalCode))
+                                    {
+                                        <text>, </text>@Model.DefaultAddress.PostalCode
+                                    }
+                                    <br />
+                                    @Model.DefaultAddress.Country
+                                </address>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card account-card h-100" data-reveal>
+                        <div class="card-body">
+                            <div class="account-panel__head">
+                                <div>
+                                    <h2 class="h6 mb-0">@T["account.savedForLater"]</h2>
+                                    <span class="account-panel__hint">@T["account.savedForLaterText"]</span>
+                                </div>
+                                <a class="small" asp-controller="Wishlist" asp-action="Index">@T["account.openWishlist"]</a>
+                            </div>
+
+                            @if (Model.WishlistPreview.Count == 0)
+                            {
+                                <p class="text-muted small mb-2">@T["account.noSavedText"]</p>
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Products" asp-action="Index">
+                                    @T["cart.browse"]
+                                </a>
+                            }
+                            else
+                            {
+                                <ul class="account-mini-list">
+                                    @foreach (var item in Model.WishlistPreview)
+                                    {
+                                        var image = string.IsNullOrWhiteSpace(item.ImageUrl) ? placeholder : item.ImageUrl;
+
+                                        <li class="account-mini-list__item">
+                                            <img class="account-mini-list__thumb" src="@image" alt="@item.Name"
+                                                 loading="lazy" data-fallback="@placeholder" />
+                                            <div class="account-mini-list__body">
+                                                <a class="account-mini-list__name"
+                                                   asp-controller="Products" asp-action="Details"
+                                                   asp-route-id="@item.ProductId">@item.Name</a>
+                                                <span class="account-mini-list__meta">
+                                                    $@item.MinPrice.ToString("N2")
+                                                    <span class="pcard__stock @(item.InStock ? "is-in" : "is-out")">
+                                                        @(item.InStock ? T["card.inStock"] : T["card.outOfStock"])
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>

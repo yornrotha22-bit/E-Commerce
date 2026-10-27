@@ -1,0 +1,278 @@
+@model AdminOrderDetailsViewModel
+@{
+    var order = Model.Order;
+    var placeholder = Url.Content("~/images/placeholder-product.svg");
+    var payment = order.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault();
+
+    ViewData["Title"] = T.Format("order.title", order.OrderNumber);
+
+    string StatusBadge(OrderStatus value) => value switch
+    {
+        OrderStatus.Pending => "text-bg-warning",
+        OrderStatus.Confirmed => "text-bg-info",
+        OrderStatus.Processing => "text-bg-info",
+        OrderStatus.Shipped => "text-bg-primary",
+        OrderStatus.Delivered => "text-bg-success",
+        OrderStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    string PaymentBadge(PaymentStatus value) => value switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h2 class="h4 mb-1">@T.Format("order.title", order.OrderNumber)</h2>
+        <p class="text-muted small mb-0">
+            @T.Format("order.placedShort", order.CreatedAt.ToString("yyyy-MM-dd HH:mm"), order.CustomerName, order.CustomerPhone)
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="badge @StatusBadge(order.OrderStatus)">@T["status." + order.OrderStatus]</span>
+        <span class="badge @PaymentBadge(order.PaymentStatus)">@T["dashboard.payment"]: @T["status." + order.PaymentStatus]</span>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Index">@T["adm.backToOrders"]</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card admin-card h-100">
+            <div class="card-header">@T["adm.processOrder"]</div>
+            <div class="card-body">
+                @if (Model.AllowedNextStatuses.Count == 0)
+                {
+                    <p class="text-muted small mb-0">@T["adm.noNextStatus"]</p>
+                }
+                else
+                {
+                    <form asp-action="UpdateStatus" asp-route-id="@order.Id" method="post" class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label small mb-1" for="newStatus">@T["adm.nextStatus"]</label>
+                            <select id="newStatus" name="newStatus" class="form-select">
+                                @foreach (var status in Model.AllowedNextStatuses)
+                                {
+                                    <option value="@status">@T["status." + status]</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small mb-1" for="carrier">@T["adm.carrierOptional"]</label>
+                            <input id="carrier" name="carrier" value="@order.ShippingCarrier"
+                                   class="form-control" placeholder="@T["adm.carrierPlaceholder"]" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small mb-1" for="trackingNumber">@T["adm.trackingOptional"]</label>
+                            <input id="trackingNumber" name="trackingNumber" value="@order.TrackingNumber"
+                                   class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small mb-1" for="statusNote">@T["adm.noteOptional"]</label>
+                            <input id="statusNote" name="note" class="form-control" maxlength="500" />
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary w-100">@T["adm.updateStatus"]</button>
+                        </div>
+                    </form>
+                }
+
+                <hr />
+
+                <form asp-action="UpdateShipping" asp-route-id="@order.Id" method="post" class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small mb-1" for="shipCarrier">@T["adm.shippingCarrier"]</label>
+                        <input id="shipCarrier" name="carrier" value="@order.ShippingCarrier" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small mb-1" for="shipTracking">@T["adm.trackingNumber"]</label>
+                        <input id="shipTracking" name="trackingNumber" value="@order.TrackingNumber" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-outline-secondary w-100">@T["adm.saveShipping"]</button>
+                    </div>
+                </form>
+
+                @if (Model.CanCancel)
+                {
+                    <hr />
+
+                    <form asp-action="Cancel" asp-route-id="@order.Id" method="post" class="row g-2"
+                          onsubmit="return confirm('@T["adm.cancelConfirm"]');">
+                        <div class="col-12">
+                            <label class="form-label small mb-1" for="cancelReason">@T["adm.cancelReason"]</label>
+                            <input id="cancelReason" name="reason" class="form-control"
+                                   placeholder="@T["adm.cancelReasonPlaceholder"]" maxlength="500" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-danger w-100">@T["order.cancel"]</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card admin-card">
+            <div class="card-header">@T["order.items"]</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@T["cartPage.product"]</th>
+                            <th class="text-end">@T["cartPage.price"]</th>
+                            <th class="text-end">@T["order.qty"]</th>
+                            <th class="text-end">@T["cartPage.total"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in order.Items)
+                        {
+                            var image = string.IsNullOrWhiteSpace(item.ImageUrl) ? placeholder : item.ImageUrl;
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="@image" alt="@item.ProductName" class="product-thumb" />
+                                        <div>
+                                            <div class="fw-semibold">@item.ProductName</div>
+                                            <div class="small text-muted">@item.SKU</div>
+                                            @if (!string.IsNullOrWhiteSpace(item.VariantDescription))
+                                            {
+                                                <div class="small text-muted">@item.VariantDescription</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end text-nowrap">$@item.UnitPrice.ToString("N2")</td>
+                                <td class="text-end">@item.Quantity</td>
+                                <td class="text-end text-nowrap">$@item.LineTotal.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <div class="card admin-card h-100">
+                    <div class="card-header">@T["cart.shipping"]</div>
+                    <div class="card-body small">
+                        <div class="fw-semibold">@order.CustomerName</div>
+                        <div class="text-muted mb-2">@order.CustomerPhone</div>
+                        <address class="mb-2">
+                            @order.ShippingAddressLine1
+                            @if (!string.IsNullOrWhiteSpace(order.ShippingAddressLine2))
+                            {
+                                <br />
+                                @order.ShippingAddressLine2
+                            }
+                            <br />
+                            @order.ShippingCity@(string.IsNullOrWhiteSpace(order.ShippingState) ? string.Empty : ", " + order.ShippingState)
+                            @if (!string.IsNullOrWhiteSpace(order.ShippingPostalCode))
+                            {
+                                <text>, </text>@order.ShippingPostalCode
+                            }
+                            <br />
+                            @order.ShippingCountry
+                        </address>
+                        <div class="text-muted">
+                            @T["adm.carrier"]: @(order.ShippingCarrier ?? "—")<br />
+                            @T["adm.trackingNumber"]: @(order.TrackingNumber ?? "—")
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card admin-card h-100">
+                    <div class="card-header">@T["checkout.payment"]</div>
+                    <div class="card-body small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">@T["order.method"]</span>
+                            <span>@(order.PaymentMethod == PaymentMethod.CashOnDelivery ? T["checkout.cod"] : T["checkout.bankTransfer"])</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">@T["dashboard.status"]</span>
+                            <span class="badge @PaymentBadge(order.PaymentStatus)">@T["status." + order.PaymentStatus]</span>
+                        </div>
+                        @if (payment is not null)
+                        {
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">@T["order.provider"]</span>
+                                <span>@payment.Provider</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">@T["order.amount"]</span>
+                                <span>$@payment.Amount.ToString("N2") @payment.Currency</span>
+                            </div>
+                        }
+                        @if (order.PaymentStatus == PaymentStatus.Pending)
+                        {
+                            <a class="btn btn-sm btn-outline-primary mt-2" asp-area="Admin"
+                               asp-controller="Payments" asp-action="Index">@T["adm.openPayments"]</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card admin-card mt-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">@T["cart.subtotal"]</span>
+                    <span>$@order.Subtotal.ToString("N2")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">@T["cart.shipping"]</span>
+                    <span>$@order.ShippingFee.ToString("N2")</span>
+                </div>
+                @if (order.DiscountAmount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 text-success">
+                        <span>@T["checkout.discount"]@(string.IsNullOrWhiteSpace(order.CouponCode) ? string.Empty : $" ({order.CouponCode})")</span>
+                        <span>-$@order.DiscountAmount.ToString("N2")</span>
+                    </div>
+                }
+                <hr />
+                <div class="d-flex justify-content-between fw-bold fs-5">
+                    <span>@T["cartPage.total"]</span>
+                    <span>$@order.TotalAmount.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card admin-card">
+            <div class="card-header">@T["order.statusHistory"]</div>
+            <div class="card-body">
+                <ul class="timeline mb-0">
+                    @foreach (var history in order.StatusHistory.OrderBy(h => h.CreatedAt))
+                    {
+                        <li class="timeline-item">
+                            <div class="d-flex justify-content-between gap-2">
+                                <span class="fw-semibold">@T["status." + history.ToStatus]</span>
+                                <span class="small text-muted">@history.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(history.Note))
+                            {
+                                <div class="small text-muted">@history.Note</div>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

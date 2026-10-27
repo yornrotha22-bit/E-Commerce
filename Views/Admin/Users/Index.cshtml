@@ -1,0 +1,110 @@
+@model AdminUserListViewModel
+@{
+    ViewData["Title"] = T["admin.nav.users"];
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form method="get" class="d-flex flex-wrap gap-2">
+        <input type="search" name="search" value="@Model.Search" class="form-control"
+               placeholder="@T["adm.customerSearchPlaceholder"]" />
+        <select name="role" class="form-select" style="min-width: 180px;">
+            <option value="">@T["adm.allRoles"]</option>
+            @foreach (var role in Model.AvailableRoles)
+            {
+                if (string.Equals(Model.Role, role, StringComparison.Ordinal))
+                {
+                    <option value="@role" selected>@role</option>
+                }
+                else
+                {
+                    <option value="@role">@role</option>
+                }
+            }
+        </select>
+        <button type="submit" class="btn btn-outline-secondary">@T["adm.filter"]</button>
+        @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Role))
+        {
+            <a class="btn btn-link" asp-action="Index">@T["products.clearAll"]</a>
+        }
+    </form>
+
+    <a class="btn btn-primary" asp-action="Create">@T["adm.addTeamMember"]</a>
+</div>
+
+<div class="card admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@T["adm.user"]</th>
+                    <th>@T["adm.roles"]</th>
+                    <th>@T["dashboard.status"]</th>
+                    <th>@T["adm.joinedAt"]</th>
+                    <th>@T["adm.lastSignIn"]</th>
+                    <th class="text-end">@T["dashboard.actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">@T["adm.noAccounts"]</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var user in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@user.FullName</div>
+                                <div class="small text-muted">@user.Email</div>
+                                @if (!string.IsNullOrWhiteSpace(user.PhoneNumber))
+                                {
+                                    <div class="small text-muted">@user.PhoneNumber</div>
+                                }
+                            </td>
+                            <td>
+                                @foreach (var role in user.Roles)
+                                {
+                                    var roleClass = role switch
+                                    {
+                                        "SuperAdmin" => "text-bg-danger",
+                                        "Admin" => "text-bg-warning",
+                                        "Staff" => "text-bg-info",
+                                        _ => "text-bg-secondary"
+                                    };
+                                    <span class="badge @roleClass me-1">@role</span>
+                                }
+                            </td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge text-bg-success">@T["adm.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">@T["adm.disabled"]</span>
+                                }
+                                @if (user.IsLockedOut)
+                                {
+                                    <span class="badge text-bg-danger">@T["adm.locked"]</span>
+                                }
+                            </td>
+                            <td class="small text-muted text-nowrap">@user.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td class="small text-muted text-nowrap">
+                                @(user.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? T["adm.never"])
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Details" asp-route-id="@user.Id">@T["dashboard.manage"]</a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="~/Views/Admin/Shared/_TablePagination.cshtml" model="PaginationViewModel.Create(Model.Page, Model.PageSize, Model.TotalItems)" />
+</div>

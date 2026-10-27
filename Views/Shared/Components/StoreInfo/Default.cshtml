@@ -1,0 +1,44 @@
+@model StoreInfoViewModel
+
+<div class="col-lg-8">
+    <div class="row gy-4">
+        <div class="col-6 col-md-4">
+            <div class="rs-footer__heading">@T["footer.contact"]</div>
+            <ul class="rs-footer__list">
+                @if (!string.IsNullOrWhiteSpace(Model.SupportPhone))
+                {
+                    <li>
+                        <a href="tel:@Model.SupportPhone.Replace(" ", string.Empty)">@Model.SupportPhone</a>
+                    </li>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.SupportEmail))
+                {
+                    <li>
+                        <a href="mailto:@Model.SupportEmail">@Model.SupportEmail</a>
+                    </li>
+                }
+                <li class="rs-footer__muted">@Model.StoreName · @Model.Currency</li>
+            </ul>
+        </div>
+
+        <div class="col-6 col-md-4">
+            <div class="rs-footer__heading">@T["footer.ordersGroup"]</div>
+            <ul class="rs-footer__list">
+                <li><a asp-area="" asp-controller="Orders" asp-action="Index">@T["footer.trackOrder"]</a></li>
+                <li><a asp-area="" asp-controller="Home" asp-action="Policies" asp-fragment="shipping">@T["footer.shippingDelivery"]</a></li>
+                <li><a asp-area="" asp-controller="Home" asp-action="Policies" asp-fragment="returns">@T["footer.returns"]</a></li>
+                <li><a asp-area="" asp-controller="Home" asp-action="Policies" asp-fragment="payments">@T["footer.paymentOptions"]</a></li>
+            </ul>
+        </div>
+
+        <div class="col-6 col-md-4">
+            <div class="rs-footer__heading">@T["footer.supportGroup"]</div>
+            <ul class="rs-footer__list">
+                <li><a asp-area="" asp-controller="Home" asp-action="Policies" asp-fragment="warranty">@T["footer.warranty"]</a></li>
+                <li><a asp-area="" asp-controller="Home" asp-action="Policies" asp-fragment="privacy">@T["footer.privacy"]</a></li>
+                <li><a asp-area="" asp-controller="Account" asp-action="Addresses">@T["footer.addresses"]</a></li>
+                <li><a asp-area="" asp-controller="Wishlist" asp-action="Index">@T["footer.saved"]</a></li>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,86 @@
+@model IReadOnlyList<WishlistRowViewModel>
+@{
+    ViewData["Title"] = T["wishlist.title"];
+    ViewData["AccountTab"] = "Wishlist";
+}
+
+<div class="container storefront py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <partial name="~/Views/Account/_AccountNav.cshtml" />
+            <div class="account-meta mt-3">
+                @T.Format("account.statWishlistHint", Model.Count)
+            </div>
+        </aside>
+
+        <section class="col-lg-9">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h1 class="h4 mb-1">@T["wishlist.title"]</h1>
+                    <p class="text-muted small mb-0">@T["wishlist.text"]</p>
+                </div>
+                <a class="btn btn-outline-secondary btn-sm" asp-controller="Products" asp-action="Index">
+                    @T["common.continueShopping"]
+                </a>
+            </div>
+
+        @if (TempData["WishlistMessage"] is string message)
+        {
+            <div class="alert alert-light border rs-alert" role="status">@message</div>
+        }
+
+        @if (Model.Count == 0)
+        {
+            <div class="rs-empty">
+                <h2 class="rs-empty__title">@T["wishlist.emptyTitle"]</h2>
+                <p class="rs-empty__text">
+                    @T["wishlist.emptyText"]
+                </p>
+                <a class="btn btn-primary" asp-area="" asp-controller="Products" asp-action="Index">@T["cart.browse"]</a>
+            </div>
+        }
+        else
+        {
+            <div class="rs-wishlist">
+                @foreach (var item in Model)
+                {
+                    var image = string.IsNullOrWhiteSpace(item.ImageUrl)
+                        ? Url.Content("~/images/placeholder-product.svg")
+                        : item.ImageUrl;
+
+                    <article class="rs-wish">
+                        <a class="rs-wish__media" asp-area="" asp-controller="Products" asp-action="Details"
+                           asp-route-id="@item.ProductId">
+                            <img src="@image" alt="@item.Name" loading="lazy"
+                                 data-fallback="@Url.Content("~/images/placeholder-product.svg")" />
+                        </a>
+
+                        <div class="rs-wish__body">
+                            <div class="pcard__eyebrow">@item.BrandName</div>
+                            <a class="rs-wish__name" asp-area="" asp-controller="Products" asp-action="Details"
+                               asp-route-id="@item.ProductId">@item.Name</a>
+                            <div class="rs-wish__meta">
+                                <span class="rs-wish__price">$@item.MinPrice.ToString("N2")</span>
+                                <span class="pcard__stock @(item.InStock ? "is-in" : "is-out")">
+                                    @(item.InStock ? T["card.inStock"] : T["card.outOfStock"])
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="rs-wish__actions">
+                            <a class="btn btn-primary btn-sm" asp-area="" asp-controller="Products"
+                               asp-action="Details" asp-route-id="@item.ProductId">@T["home.viewProduct"]</a>
+
+                            <form method="post" asp-area="" asp-controller="Wishlist" asp-action="Toggle">
+                                <input type="hidden" name="productId" value="@item.ProductId" />
+                                <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Wishlist")" />
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">@T["cart.remove"]</button>
+                            </form>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        </section>
+    </div>
+</div>

@@ -1,0 +1,142 @@
+@model PaginationViewModel
+@{
+    // Preserve the current filters and search terms; only `page` is replaced.
+    var routeValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var item in ViewContext.HttpContext.Request.Query)
+    {
+        if (!string.Equals(item.Key, "page", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(item.Key, "pageSize", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(item.Value))
+        {
+            routeValues[item.Key] = item.Value.ToString();
+        }
+    }
+
+    const int window = 2;
+    var pages = new List<int?>();
+
+    if (Model.TotalPages <= 7)
+    {
+        for (var page = 1; page <= Model.TotalPages; page++)
+        {
+            pages.Add(page);
+        }
+    }
+    else
+    {
+        pages.Add(1);
+
+        var start = Math.Max(2, Model.Page - window);
+        var end = Math.Min(Model.TotalPages - 1, Model.Page + window);
+
+        if (start > 2)
+        {
+            pages.Add(null);
+        }
+
+        for (var page = start; page <= end; page++)
+        {
+            pages.Add(page);
+        }
+
+        if (end < Model.TotalPages - 1)
+        {
+            pages.Add(null);
+        }
+
+        pages.Add(Model.TotalPages);
+    }
+}
+
+@if (Model.TotalItems > 0)
+{
+    <div class="admin-pagination">
+        <div class="admin-pagination__meta">
+            <span class="admin-pagination__summary">
+                @T.Format("adm.showingRange", Model.FirstItemNumber, Model.LastItemNumber, Model.TotalItems)
+            </span>
+
+            <form class="admin-pagination__size" method="get" asp-action="Index">
+                @foreach (var item in routeValues)
+                {
+                    <input type="hidden" name="@item.Key" value="@item.Value" />
+                }
+
+                <label class="admin-pagination__size-label" for="adminPageSize">@T["adm.perPage"]</label>
+                <select class="admin-pagination__size-select" id="adminPageSize" name="pageSize"
+                        data-page-size aria-label="@T["adm.perPage"]">
+                    @foreach (var option in AdminPageSize.Options)
+                    {
+                        <option value="@option" selected="@(option == Model.PageSize)">@option</option>
+                    }
+                </select>
+                <noscript>
+                    <button type="submit" class="admin-pagination__size-apply">@T["adm.apply"]</button>
+                </noscript>
+            </form>
+        </div>
+
+        <nav class="admin-pagination__nav" aria-label="@T["adm.pagination"]">
+            @if (Model.HasPrevious)
+            {
+                <a class="admin-pagination__step" asp-action="Index" asp-all-route-data="@routeValues"
+                   asp-route-pageSize="@Model.PageSize" asp-route-page="@(Model.Page - 1)"
+                   aria-label="@T["products.previous"]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor"
+                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </a>
+            }
+            else
+            {
+                <span class="admin-pagination__step is-disabled" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24">
+                        <path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor"
+                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+            }
+
+            @foreach (var page in pages)
+            {
+                if (page is null)
+                {
+                    <span class="admin-pagination__gap" aria-hidden="true">…</span>
+                }
+                else if (page == Model.Page)
+                {
+                    <span class="admin-pagination__page is-current" aria-current="page">@(page)</span>
+                }
+                else
+                {
+                    <a class="admin-pagination__page" asp-action="Index" asp-all-route-data="@routeValues"
+                       asp-route-pageSize="@Model.PageSize" asp-route-page="@(page)"
+                       aria-label="@T.Format("adm.pageNumber", page)">@(page)</a>
+                }
+            }
+
+            @if (Model.HasNext)
+            {
+                <a class="admin-pagination__step" asp-action="Index" asp-all-route-data="@routeValues"
+                   asp-route-pageSize="@Model.PageSize" asp-route-page="@(Model.Page + 1)"
+                   aria-label="@T["products.next"]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor"
+                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </a>
+            }
+            else
+            {
+                <span class="admin-pagination__step is-disabled" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24">
+                        <path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor"
+                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+            }
+        </nav>
+    </div>
+}

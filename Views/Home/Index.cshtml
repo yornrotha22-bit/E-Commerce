@@ -1,0 +1,360 @@
+@model HomeViewModel
+@{
+    ViewData["Title"] = T["home.eyebrow"];
+
+    var productCount = Model.Categories.Sum(c => c.ProductCount);
+    var heroProducts = Model.FeaturedProducts
+        .Concat(Model.NewArrivals)
+        .DistinctBy(product => product.Id)
+        .Take(2)
+        .ToList();
+
+    var marqueeItems = new List<string>
+    {
+        T["home.eyebrow"],
+        T.Format("home.freeDeliveryOver", Model.FreeShippingThreshold.ToString("N2")),
+        T["home.codAvailable"],
+        T["home.trustStockTitle"],
+        T["footer.returns"],
+        T["home.trustSupportTitle"]
+    };
+
+    if (!string.IsNullOrWhiteSpace(Model.SupportPhone))
+    {
+        marqueeItems.Add(T.Format("home.support", Model.SupportPhone));
+    }
+}
+
+<section class="rs-hero rs-tech-bg">
+    <span class="rs-tech-bg__scan" aria-hidden="true"></span>
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <span class="rs-eyebrow">@T["home.eyebrow"]</span>
+                <h1 class="rs-hero__title rs-type" data-typewriter>
+                    <span class="visually-hidden">@T["home.title"]</span>
+                    <span class="rs-type__sizer" aria-hidden="true">@T["home.title"]</span>
+                    <span class="rs-type__live" aria-hidden="true"><span class="rs-type__text">@T["home.title"]</span><span class="rs-type__caret"></span></span>
+                </h1>
+                <p class="rs-hero__text">
+                    @T["home.text"]
+                </p>
+
+                <div class="rs-hero__actions">
+                    <a class="btn btn-primary btn-lg" asp-area="" asp-controller="Products" asp-action="Index">
+                        @T["home.shopNow"]
+                    </a>
+                    <a class="rs-link-arrow" href="#categories">
+                        @T["home.browseCategories"]
+                        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor"
+                                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </a>
+                </div>
+
+                <ul class="rs-hero__points">
+                    <li>@T.Format("home.freeDeliveryOver", Model.FreeShippingThreshold.ToString("N2"))</li>
+                    @if (!string.IsNullOrWhiteSpace(Model.SupportPhone))
+                    {
+                        <li>@T.Format("home.support", Model.SupportPhone)</li>
+                    }
+                    <li>@T["home.codAvailable"]</li>
+                </ul>
+            </div>
+
+            @if (heroProducts.Count > 0)
+            {
+                <div class="col-lg-5">
+                    <div class="rs-hero-products" aria-label="@T["home.featured"]">
+                        @for (var i = 0; i < heroProducts.Count; i++)
+                        {
+                            var product = heroProducts[i];
+                            var image = string.IsNullOrWhiteSpace(product.ImageUrl)
+                                ? Url.Content("~/images/placeholder-product.svg")
+                                : product.ImageUrl;
+                            <a class="rs-hero-product rs-hero-product--@(i + 1)" asp-area="" asp-controller="Products"
+                               asp-action="Details" asp-route-id="@product.Id" aria-label="@product.Name">
+                                <span class="rs-hero-product__image">
+                                    <img src="@image" alt="@product.Name" loading="lazy"
+                                         data-fallback="@Url.Content("~/images/placeholder-product.svg")" />
+                                </span>
+                                <span class="rs-hero-product__info">
+                                    <span class="rs-hero-product__name">@product.Name</span>
+                                    <span class="rs-hero-product__price">
+                                        @if (product.HasPriceRange)
+                                        {
+                                            @:$@product.MinPrice.ToString("N2") – $@product.MaxPrice.ToString("N2")
+                                        }
+                                        else
+                                        {
+                                            @:$@product.MinPrice.ToString("N2")
+                                        }
+                                    </span>
+                                </span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+        </div>
+
+        <div class="rs-marquee" role="region" aria-label="@T["home.marqueeLabel"]">
+            <div class="rs-marquee__track">
+                <ul class="rs-marquee__group">
+                    @foreach (var item in marqueeItems)
+                    {
+                        <li class="rs-marquee__item">@item</li>
+                    }
+                </ul>
+                <ul class="rs-marquee__group" aria-hidden="true">
+                    @foreach (var item in marqueeItems)
+                    {
+                        <li class="rs-marquee__item">@item</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="rs-trust">
+    <div class="container">
+        <div class="rs-trust__grid">
+            <div class="rs-trust__item">
+                <span class="rs-trust__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z" fill="none" stroke="currentColor"
+                              stroke-width="1.6" stroke-linejoin="round" />
+                        <circle cx="7" cy="18" r="1.6" fill="none" stroke="currentColor" stroke-width="1.5" />
+                        <circle cx="17.5" cy="18" r="1.6" fill="none" stroke="currentColor" stroke-width="1.5" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="rs-trust__title">@T["home.trustDeliveryTitle"]</div>
+                    <div class="rs-trust__text">@T.Format("home.trustDeliveryText", Model.FreeShippingThreshold.ToString("N2"))</div>
+                </div>
+            </div>
+
+            <div class="rs-trust__item">
+                <span class="rs-trust__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path d="M12 3.5 19 6v5.5c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6l7-2.5Z"
+                              fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                        <path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor"
+                              stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="rs-trust__title">@T["home.trustStockTitle"]</div>
+                    <div class="rs-trust__text">@T["home.trustStockText"]</div>
+                </div>
+            </div>
+
+            <div class="rs-trust__item">
+                <span class="rs-trust__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path d="M4 5h16v11H8l-4 4z" fill="none" stroke="currentColor"
+                              stroke-width="1.6" stroke-linejoin="round" />
+                        <path d="M8.5 9.5h7M8.5 12.5h4.5" fill="none" stroke="currentColor"
+                              stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="rs-trust__title">@T["home.trustSupportTitle"]</div>
+                    <div class="rs-trust__text">
+                        @if (!string.IsNullOrWhiteSpace(Model.SupportEmail))
+                        {
+                            <a href="mailto:@Model.SupportEmail" class="rs-trust__link">@Model.SupportEmail</a>
+                        }
+                        else
+                        {
+                            <span>@T["home.trustSupportText"]</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.Categories.Count > 0)
+{
+    <section class="rs-section" id="categories">
+        <div class="container">
+            <div class="rs-section__head">
+                <div>
+                    <h2 class="rs-section__title">@T["home.shopByCategory"]</h2>
+                </div>
+                <a class="rs-link-arrow" asp-area="" asp-controller="Products" asp-action="Index">
+                    @(productCount == 1
+                        ? T.Format("home.allProductsOne", productCount)
+                        : T.Format("home.allProducts", productCount))
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor"
+                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </a>
+            </div>
+
+            <div class="rs-category-grid" data-reveal-group>
+                @foreach (var category in Model.Categories)
+                {
+                    <a class="rs-category" data-reveal asp-area="" asp-controller="Products" asp-action="Index"
+                       asp-route-categoryId="@category.Id">
+                        <span class="rs-category__initial" aria-hidden="true">@category.Name.Substring(0, 1)</span>
+                        <span class="rs-category__name">@category.Name</span>
+                        <span class="rs-category__count">@(category.ProductCount == 1
+                            ? T.Format("home.categoryItemsOne", category.ProductCount)
+                            : T.Format("home.categoryItems", category.ProductCount))</span>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.FeaturedProducts.Count > 0)
+{
+    <section class="rs-section rs-section--tight">
+        <div class="container">
+            <div class="rs-section__head">
+                <div>
+                    <h2 class="rs-section__title">@T["home.featured"]</h2>
+                </div>
+                <a class="rs-link-arrow" asp-area="" asp-controller="Products" asp-action="Index">
+                    @T["common.viewAll"]
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor"
+                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </a>
+            </div>
+
+            <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 g-lg-4" data-reveal-group>
+                @foreach (var product in Model.FeaturedProducts)
+                {
+                    <div class="col">
+                        <partial name="_ProductCard" model="product" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<section class="rs-section rs-section--tight">
+    <div class="container">
+        <div class="rs-promo" data-reveal>
+            <div class="rs-promo__content">
+                <h2 class="rs-promo__title">@T.Format("home.promoTitle", Model.FreeShippingThreshold.ToString("N2"))</h2>
+                <p class="rs-promo__text">
+                    @T["home.promoText"]
+                </p>
+            </div>
+            <div class="rs-promo__actions">
+                <a class="btn btn-accent" asp-area="" asp-controller="Products" asp-action="Index">
+                    @T["home.startShopping"]
+                </a>
+                <a class="rs-promo__link" asp-area="" asp-controller="Home" asp-action="Policies">
+                    @T["home.deliveryReturns"]
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@if (Model.NewArrivals.Count > 0 || Model.BestSellers.Count > 0)
+{
+    <section class="rs-section">
+        <div class="container">
+            <div class="row g-4 g-lg-5">
+                @if (Model.NewArrivals.Count > 0)
+                {
+                    <div class="col-lg-6">
+                        <div class="rs-section__head rs-section__head--sm">
+                            <div>
+                                <h2 class="rs-section__title">@T["home.newArrivals"]</h2>
+                            </div>
+                            <a class="rs-link-arrow" asp-area="" asp-controller="Products"
+                               asp-action="Index" asp-route-sort="newest">@T["common.seeMore"]</a>
+                        </div>
+
+                        <div class="row row-cols-2 g-3" data-reveal-group>
+                            @foreach (var product in Model.NewArrivals.Take(4))
+                            {
+                                <div class="col">
+                                    <partial name="_ProductCard" model="product" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (Model.BestSellers.Count > 0)
+                {
+                    <div class="col-lg-6">
+                        <div class="rs-section__head rs-section__head--sm">
+                            <div>
+                                <h2 class="rs-section__title">@T["home.bestSellers"]</h2>
+                            </div>
+                            <a class="rs-link-arrow" asp-area="" asp-controller="Products"
+                               asp-action="Index" asp-route-sort="popular">@T["common.seeMore"]</a>
+                        </div>
+
+                        <div class="row row-cols-2 g-3" data-reveal-group>
+                            @foreach (var product in Model.BestSellers.Take(4))
+                            {
+                                <div class="col">
+                                    <partial name="_ProductCard" model="product" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.Brands.Count > 0)
+{
+    <section class="rs-section rs-section--tight">
+        <div class="container">
+            <div class="rs-section__head rs-section__head--sm">
+                <div>
+                    <h2 class="rs-section__title">@T["home.shopByBrand"]</h2>
+                </div>
+            </div>
+
+            <div class="rs-brand-row" data-reveal-group>
+                @foreach (var brand in Model.Brands)
+                {
+                    <a class="rs-brand" data-reveal asp-area="" asp-controller="Products" asp-action="Index"
+                       asp-route-brandId="@brand.Id">
+                        <span class="rs-brand__name">@brand.Name</span>
+                        <span class="rs-brand__count">@brand.ProductCount</span>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (Model.FeaturedProducts.Count == 0 && Model.NewArrivals.Count == 0)
+{
+    <section class="rs-section">
+        <div class="container">
+            <div class="rs-empty">
+                <h2 class="rs-empty__title">@T["home.emptyTitle"]</h2>
+                <p class="rs-empty__text">
+                    @T["home.emptyText"]
+                </p>
+                <a class="btn btn-primary" asp-area="Admin" asp-controller="Products" asp-action="Create">
+                    @T["home.addFirstProduct"]
+                </a>
+            </div>
+        </div>
+    </section>
+}

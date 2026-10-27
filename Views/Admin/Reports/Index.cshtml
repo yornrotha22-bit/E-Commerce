@@ -1,0 +1,233 @@
+@model ReportViewModel
+@{
+    ViewData["Title"] = T["admin.nav.reports"];
+    var notice = ViewData["RangeNotice"] as string;
+}
+
+<form method="get" class="card admin-card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1" for="reportFrom">@T["adm.from"]</label>
+                <input id="reportFrom" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")"
+                       class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1" for="reportTo">@T["adm.to"]</label>
+                <input id="reportTo" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")"
+                       class="form-control" />
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">@T["adm.generateReport"]</button>
+                <span class="small text-muted align-self-center">
+                    @T["adm.revenueNote"]
+                </span>
+            </div>
+        </div>
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(notice))
+{
+    <div class="alert alert-warning small" role="alert">@notice</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="card admin-card h-100">
+            <div class="card-body">
+                <div class="stat-label">@T["adm.paidRevenue"]</div>
+                <div class="stat-value">$@Model.PaidRevenue.ToString("N2")</div>
+                <div class="small text-muted">@Model.PaidOrderCount paid order(s)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card admin-card h-100">
+            <div class="card-body">
+                <div class="stat-label">@T["admin.nav.orders"]</div>
+                <div class="stat-value">@Model.OrderCount</div>
+                <div class="small text-muted">@Model.CancelledOrders cancelled</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card admin-card h-100">
+            <div class="card-body">
+                <div class="stat-label">@T["dashboard.averageOrder"]</div>
+                <div class="stat-value">$@Model.AverageOrderValue.ToString("N2")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card admin-card h-100">
+            <div class="card-body">
+                <div class="stat-label">@T["adm.unitsSold"]</div>
+                <div class="stat-value">@Model.UnitsSold</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-7">
+        <div class="card admin-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>@T["adm.paidSalesByDay"]</span>
+                <span class="small text-muted">@Model.From.ToString("yyyy-MM-dd") → @Model.To.ToString("yyyy-MM-dd")</span>
+            </div>
+
+            @if (Model.DailySales.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-4">
+                    No paid orders in this date range.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["dashboard.date"]</th>
+                                <th class="text-end">@T["dashboard.paidOrders"]</th>
+                                <th class="text-end">@T["adm.revenue"]</th>
+                                <th style="width: 35%;">@T["adm.share"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.DailySales)
+                            {
+                                var percent = Model.MaxDailyRevenue <= 0
+                                    ? 0
+                                    : (int)Math.Round(((double)row.Revenue / (double)Model.MaxDailyRevenue) * 100);
+
+                                <tr>
+                                    <td class="small text-nowrap">@row.Date.ToString("yyyy-MM-dd")</td>
+                                    <td class="text-end">@row.Orders</td>
+                                    <td class="text-end text-nowrap">$@row.Revenue.ToString("N2")</td>
+                                    <td>
+                                        <div class="report-bar-track">
+                                            <div class="report-bar" style="width: @percent%;"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="card admin-card h-100">
+            <div class="card-header">@T["adm.paymentMethods"]</div>
+
+            @if (Model.PaymentBreakdown.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-4">@T["adm.noPaymentsInRange"]</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["order.method"]</th>
+                                <th class="text-end">@T["adm.payments"]</th>
+                                <th class="text-end">@T["order.amount"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.PaymentBreakdown)
+                            {
+                                <tr>
+                                    <td>
+                                        @(row.Method == PaymentMethod.CashOnDelivery
+                                            ? "Cash on delivery"
+                                            : "Bank transfer")
+                                    </td>
+                                    <td class="text-end">@row.Count</td>
+                                    <td class="text-end text-nowrap">$@row.Amount.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="card admin-card">
+            <div class="card-header">@T["adm.topProducts"]</div>
+
+            @if (Model.TopProducts.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-4">@T["adm.noProductSales"]</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["cartPage.product"]</th>
+                                <th>SKU</th>
+                                <th class="text-end">@T["adm.units"]</th>
+                                <th class="text-end">@T["adm.revenue"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.TopProducts)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@row.ProductName</td>
+                                    <td class="small text-muted">@row.SKU</td>
+                                    <td class="text-end">@row.Quantity</td>
+                                    <td class="text-end text-nowrap">$@row.Revenue.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="card admin-card">
+            <div class="card-header">@T["adm.topCustomers"]</div>
+
+            @if (Model.TopCustomers.Count == 0)
+            {
+                <div class="card-body text-center text-muted py-4">@T["adm.noCustomerRevenue"]</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>@T["dashboard.customer"]</th>
+                                <th class="text-end">@T["admin.nav.orders"]</th>
+                                <th class="text-end">@T["adm.revenue"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.TopCustomers)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@row.CustomerName</td>
+                                    <td class="text-end">@row.Orders</td>
+                                    <td class="text-end text-nowrap">$@row.Revenue.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

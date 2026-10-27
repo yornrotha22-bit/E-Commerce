@@ -1,0 +1,95 @@
+@{
+    ViewData["Title"] = T["policies.title"];
+}
+
+<section class="rs-page-head rs-tech-bg">
+    <span class="rs-tech-bg__scan" aria-hidden="true"></span>
+    <div class="container">
+        <span class="rs-eyebrow">@T["policies.eyebrow"]</span>
+        <h1 class="rs-page-head__title rs-type" data-typewriter>
+            <span class="visually-hidden">@T["policies.title"]</span>
+            <span class="rs-type__sizer" aria-hidden="true">@T["policies.title"]</span>
+            <span class="rs-type__live" aria-hidden="true"><span class="rs-type__text">@T["policies.title"]</span><span class="rs-type__caret"></span></span>
+        </h1>
+        <p class="rs-page-head__text">
+            @T["policies.intro"]
+        </p>
+    </div>
+</section>
+
+<section class="container rs-section rs-section--tight">
+    <div class="row g-4 g-lg-5">
+        <div class="col-lg-3">
+            <nav class="rs-policy-nav" aria-label="@T["policies.navAria"]">
+                <a href="#shipping">@T["footer.shippingDelivery"]</a>
+                <a href="#returns">@T["footer.returns"]</a>
+                <a href="#payments">@T["footer.paymentOptions"]</a>
+                <a href="#warranty">@T["footer.warranty"]</a>
+                <a href="#privacy">@T["footer.privacy"]</a>
+            </nav>
+        </div>
+
+        <div class="col-lg-9">
+            <article class="rs-policy" id="shipping">
+                <h2>@T["footer.shippingDelivery"]</h2>
+                <p>
+                    @T["policies.shippingIntro"]
+                </p>
+                <ul>
+                    <li>@T["policies.shipping1"]</li>
+                    <li>@T["policies.shipping2"]</li>
+                    <li>@T["policies.shipping3"]</li>
+                </ul>
+            </article>
+
+            <article class="rs-policy" id="returns">
+                <h2>@T["footer.returns"]</h2>
+                <p>
+                    @T["policies.returnsIntro"]
+                </p>
+                <ul>
+                    <li>@T["policies.returns1"]</li>
+                    <li>@T["policies.returns2"]</li>
+                    <li>@T["policies.returns3"]</li>
+                </ul>
+            </article>
+
+            <article class="rs-policy" id="payments">
+                <h2>@T["footer.paymentOptions"]</h2>
+                <p>@T["policies.paymentsIntro"]</p>
+                <ul>
+                    <li>@T["policies.payments1"]</li>
+                    <li>@T["policies.payments2"]</li>
+                </ul>
+                <p class="rs-policy__note">
+                    @T["policies.paymentsNote"]
+                </p>
+            </article>
+
+            <article class="rs-policy" id="warranty">
+                <h2>@T["footer.warranty"]</h2>
+                <p>
+                    @T["policies.warrantyIntro"]
+                </p>
+                <ul>
+                    <li>@T["policies.warranty1"]</li>
+                    <li>@T["policies.warranty2"]</li>
+                </ul>
+            </article>
+
+            <article class="rs-policy" id="privacy">
+                <h2>@T["footer.privacy"]</h2>
+                <p>@T["policies.privacyIntro"]</p>
+                <ul>
+                    <li>@T["policies.privacy1"]</li>
+                    <li>@T["policies.privacy2"]</li>
+                    <li>@T["policies.privacy3"]</li>
+                    <li>@T["policies.privacy4"]</li>
+                </ul>
+                <p class="rs-policy__note">
+                    @T["policies.privacyNote"]
+                </p>
+            </article>
+        </div>
+    </div>
+</section>

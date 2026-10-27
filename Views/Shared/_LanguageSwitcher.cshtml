@@ -1,0 +1,16 @@
+@{
+    var currentCulture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+    var isKhmer = currentCulture == SupportedCultures.Khmer;
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="rs-lang" role="group" aria-label="@T["common.language"]">
+    <a class="rs-lang__option @(isKhmer ? null : "is-active")"
+       asp-area="" asp-controller="Language" asp-action="Set"
+       asp-route-culture="@SupportedCultures.English" asp-route-returnUrl="@returnUrl"
+       lang="en" hreflang="en" aria-current="@(isKhmer ? null : "true")">EN</a>
+    <a class="rs-lang__option @(isKhmer ? "is-active" : null)"
+       asp-area="" asp-controller="Language" asp-action="Set"
+       asp-route-culture="@SupportedCultures.Khmer" asp-route-returnUrl="@returnUrl"
+       lang="km" hreflang="km" aria-current="@(isKhmer ? "true" : null)">ខ្មែរ</a>
+</div>

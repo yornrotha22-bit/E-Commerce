@@ -1,0 +1,40 @@
+@model ProductImportViewModel
+@{
+    ViewData["Title"] = T["adm.importExportProducts"];
+}
+
+<div class="card admin-card mb-3">
+    <div class="card-body">
+        <p class="text-muted mb-3">@T["adm.importProductsHelp"]</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" asp-action="Export">@T["adm.exportProducts"]</a>
+            <a class="btn btn-outline-secondary" asp-action="Template">@T["adm.downloadTemplate"]</a>
+        </div>
+    </div>
+</div>
+
+@if (Model.Errors.Count > 0)
+{
+    <div class="alert alert-danger" role="alert">
+        <div class="fw-semibold">@T["adm.importFailedTitle"]</div>
+        <ul class="mb-0 mt-2">
+            @foreach (var error in Model.Errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+<form asp-action="Import" method="post" enctype="multipart/form-data" class="card admin-card">
+    <div class="card-body">
+        <h2 class="h5">@T["adm.importProducts"]</h2>
+        <p class="small text-muted">@T["adm.importFormatHelp"]</p>
+        <div class="mb-3">
+            <label asp-for="File" class="form-label">@T["adm.importCsvFile"]</label>
+            <input asp-for="File" type="file" class="form-control" accept=".csv,text/csv" required />
+        </div>
+        <button type="submit" class="btn btn-primary">@T["adm.importProducts"]</button>
+        <a class="btn btn-outline-secondary" asp-action="Index">@T["adm.backToList"]</a>
+    </div>
+</form>

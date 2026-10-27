@@ -1,0 +1,338 @@
+﻿@model ProductDetailsViewModel
+@{
+    var product = Model.Product;
+    var placeholder = Url.Content("~/images/placeholder-product.svg");
+    var firstVariant = Model.Variants.FirstOrDefault();
+    var defaultImage = Model.ImageUrls.Count > 0 ? Model.ImageUrls[0] : placeholder;
+    var mainImage = firstVariant?.ImageUrl ?? defaultImage;
+    var colors = Model.Variants
+        .Where(v => !string.IsNullOrWhiteSpace(v.Color))
+        .Select(v => v.Color!)
+        .Distinct()
+        .ToList();
+    var storages = Model.Variants
+        .Where(v => !string.IsNullOrWhiteSpace(v.Storage))
+        .Select(v => v.Storage!)
+        .Distinct()
+        .ToList();
+}
+
+<div class="container storefront py-4">
+    <nav class="breadcrumb-line" aria-label="@T["common.breadcrumb"]">
+        <a asp-controller="Home" asp-action="Index">@T["nav.home"]</a>
+        <span>/</span>
+        <a asp-controller="Products" asp-action="Index">@T["products.shop"]</a>
+        <span>/</span>
+        <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@product.CategoryId">@product.Category?.Name</a>
+        <span>/</span>
+        <span aria-current="page">@product.Name</span>
+    </nav>
+
+    @if (TempData["ReviewSuccess"] is string reviewSuccess)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @reviewSuccess
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["common.close"]"></button>
+        </div>
+    }
+
+    @if (TempData["ReviewError"] is string reviewError)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @reviewError
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@T["common.close"]"></button>
+        </div>
+    }
+
+    <div class="row g-4 g-lg-5" data-reveal-group>
+        <div class="col-lg-6" data-reveal>
+            <div class="gallery">
+                <div class="gallery-stage">
+                    <img id="mainImage" src="@mainImage" alt="@product.Name" class="gallery-main"
+                         decoding="async" fetchpriority="high"
+                         data-fallback="@placeholder"
+                         data-default-image="@defaultImage" />
+                </div>
+
+                @if (Model.ImageUrls.Count > 1)
+                {
+                    <div class="gallery-thumbs">
+                        @for (var i = 0; i < Model.ImageUrls.Count; i++)
+                        {
+                            <button type="button" class="gallery-thumb-btn @(i == 0 ? "active" : string.Empty)"
+                                    data-gallery-full="@Model.ImageUrls[i]"
+                                    aria-label="@T.Format("details.viewImage", i + 1)">
+                                <img src="@Model.ImageUrls[i]" alt="" loading="lazy" decoding="async" />
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-6" data-reveal>
+            <div class="small text-muted mb-1">
+                <a asp-controller="Products" asp-action="Index" asp-route-brandId="@product.BrandId">@product.Brand?.Name</a>
+                <span>·</span>
+                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@product.CategoryId">@product.Category?.Name</a>
+            </div>
+
+            <h1 class="h3 mb-2">@product.Name</h1>
+
+            <div class="mb-3 small">
+                @if (Model.AverageRating.HasValue)
+                {
+                    <span class="text-warning" aria-hidden="true">★</span>
+                    <span class="fw-semibold">@Model.AverageRating.Value.ToString("0.0")</span>
+                    <span class="text-muted">@(Model.ReviewCount == 1
+                        ? T.Format("details.reviewsOne", Model.ReviewCount)
+                        : T.Format("details.reviews", Model.ReviewCount))</span>
+                }
+                else
+                {
+                    <span class="text-muted">@T["details.noReviews"]</span>
+                }
+            </div>
+
+            <div class="price-block mb-2">
+                <span class="price-current" id="variant-price">$@Model.MinPrice.ToString("N2")</span>
+                <span class="price-compare" id="variant-compare"
+                      hidden="@(firstVariant?.CompareAtPrice is null)">
+                    @(firstVariant?.CompareAtPrice is decimal compare ? $"${compare:N2}" : string.Empty)
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <span id="variant-stock"
+                      class="stock-badge @(Model.InStock ? "in-stock" : "out-stock")">
+                    @(Model.InStock ? $"{Model.TotalStock} in stock" : "Out of stock")
+                </span>
+                <span class="small text-muted ms-2">
+                    SKU: <span id="variant-sku">@firstVariant?.SKU</span>
+                </span>
+            </div>
+
+            @if (Model.Variants.Count > 0)
+            {
+                <fieldset class="variant-group">
+                    <legend class="form-label small text-uppercase text-muted">@T["details.chooseVariant"]</legend>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        @for (var i = 0; i < Model.Variants.Count; i++)
+                        {
+                            var variant = Model.Variants[i];
+                            var label = variant.Color is null && variant.Storage is null
+                                ? "Standard"
+                                : string.Join(" / ", new[] { variant.Color, variant.Storage }.Where(v => !string.IsNullOrWhiteSpace(v)));
+
+                            <label class="variant-option">
+                                <input type="radio" name="variantId" value="@variant.Id"
+                                       data-price="@variant.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                       data-compare="@(variant.CompareAtPrice?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))"
+                                       data-stock="@variant.StockQuantity"
+                                       data-sku="@variant.SKU"
+                                       data-label="@label"
+                                       data-image="@variant.ImageUrl"
+                                       checked="@(i == 0)" />
+                                <span>@label</span>
+                            </label>
+                        }
+                    </div>
+
+                    <div class="small text-muted mt-2">
+                        @T["details.selected"] <span id="variant-summary">@(firstVariant?.Color ?? firstVariant?.Storage ?? T["details.standard"])</span>
+                    </div>
+                </fieldset>
+            }
+
+            <div class="product-actions d-flex flex-wrap gap-2 align-items-end mb-3">
+                <form asp-controller="Cart" asp-action="Add" method="post"
+                      class="d-flex flex-wrap gap-2 align-items-end" data-loading data-cart-form>
+                    <input type="hidden" name="productVariantId" id="selectedVariantId"
+                           value="@firstVariant?.Id" />
+
+                    <div>
+                        <label class="form-label small mb-1" for="quantity">@T["details.quantity"]</label>
+                        <input id="quantity" name="quantity" type="number" min="1" value="1"
+                               max="@Math.Max(firstVariant?.StockQuantity ?? 1, 1)"
+                               class="form-control" style="width: 96px;" />
+                    </div>
+
+                    <button type="submit" id="addToCartButton" class="btn btn-primary btn-lg"
+                            disabled="@(!Model.InStock)">
+                        <span class="btn-label">@T["card.addToCart"]</span>
+                    </button>
+
+                    @if (!Model.InStock)
+                    {
+                        <span class="small text-muted">@T["details.outOfStockNote"]</span>
+                    }
+                </form>
+
+                <form asp-controller="Wishlist" asp-action="Toggle" method="post" class="wishlist-form">
+                    <input type="hidden" name="productId" value="@product.Id" />
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                    <button type="submit"
+                            class="btn btn-outline-secondary btn-lg wishlist-toggle @(Model.IsInWishlist ? "is-saved" : null)"
+                            aria-pressed="@(Model.IsInWishlist ? "true" : "false")">
+                        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 20s-7-4.35-7-9.3A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 7 3.7C19 15.65 12 20 12 20Z"
+                                  fill="@(Model.IsInWishlist ? "currentColor" : "none")"
+                                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                        </svg>
+                        <span>@(Model.IsInWishlist ? T["card.saved"] : T["card.saveToWishlist"])</span>
+                    </button>
+                </form>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(product.Description))
+            {
+                <div class="product-description mb-4">
+                    <h2 class="h6">@T["details.description"]</h2>
+                    <p class="text-muted mb-0">@product.Description</p>
+                </div>
+            }
+
+            <div class="spec-table">
+                <h2 class="h6">@T["details.specifications"]</h2>
+                <dl class="row small mb-0">
+                    <dt class="col-4 text-muted">@T["products.brand"]</dt>
+                    <dd class="col-8">@product.Brand?.Name</dd>
+
+                    <dt class="col-4 text-muted">@T["products.category"]</dt>
+                    <dd class="col-8">@product.Category?.Name</dd>
+
+                    @if (colors.Count > 0)
+                    {
+                        <dt class="col-4 text-muted">@T["details.colors"]</dt>
+                        <dd class="col-8">@string.Join(", ", colors)</dd>
+                    }
+
+                    @if (storages.Count > 0)
+                    {
+                        <dt class="col-4 text-muted">@T["details.storage"]</dt>
+                        <dd class="col-8">@string.Join(", ", storages)</dd>
+                    }
+
+                    <dt class="col-4 text-muted">@T["details.variants"]</dt>
+                    <dd class="col-8">@Model.Variants.Count</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <section class="section">
+        <div class="section-heading">
+            <h2>@T["details.customerReviews"]</h2>
+            <span class="small text-muted">@(Model.ReviewCount == 1
+                ? T.Format("details.approvedOne", Model.ReviewCount)
+                : T.Format("details.approved", Model.ReviewCount))</span>
+        </div>
+
+        @if (Model.Reviews.Count == 0)
+        {
+            <div class="empty-state py-4">
+                <p class="text-muted mb-0">@T["details.noApprovedReviews"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3" data-reveal-group>
+                @foreach (var review in Model.Reviews)
+                {
+                    <div class="col-md-6">
+                        <article class="review-item h-100" data-reveal>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold">@(review.User?.FullName ?? T["details.customer"])</span>
+                                <span class="small text-muted">@review.CreatedAt.ToString("yyyy-MM-dd")</span>
+                            </div>
+                            <div class="stars mb-2" aria-label="@T.Format("details.outOfFive", review.Rating)">
+                                @for (var star = 1; star <= 5; star++)
+                                {
+                                    <span class="@(star <= review.Rating ? "text-warning" : "text-muted")">★</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(review.Title))
+                            {
+                                <div class="fw-semibold small mb-1">@review.Title</div>
+                            }
+                            <p class="small text-muted mb-0">@review.Comment</p>
+                        </article>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="section">
+        <div class="section-heading">
+            <h2>@T["details.writeReview"]</h2>
+        </div>
+
+        @if (Model.CanSubmitReview && Model.ReviewOrderItemId.HasValue)
+        {
+            <div class="card review-item">
+                <div class="card-body">
+                    <form asp-controller="Reviews" asp-action="Create" method="post" class="row g-3">
+                        <input type="hidden" name="productId" value="@product.Id" />
+                        <input type="hidden" name="orderItemId" value="@Model.ReviewOrderItemId" />
+
+                        <div class="col-md-3">
+                            <label class="form-label" for="reviewRating">@T["details.rating"]</label>
+                            <select id="reviewRating" name="rating" class="form-select" required>
+                                <option value="5">@T["rating.5"]</option>
+                                <option value="4">@T["rating.4"]</option>
+                                <option value="3">@T["rating.3"]</option>
+                                <option value="2">@T["rating.2"]</option>
+                                <option value="1">@T["rating.1"]</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-9">
+                            <label class="form-label" for="reviewTitle">@T["details.reviewTitle"]</label>
+                            <input id="reviewTitle" name="title" maxlength="150" class="form-control" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="reviewComment">@T["details.yourReview"]</label>
+                            <textarea id="reviewComment" name="comment" rows="4" minlength="10"
+                                      maxlength="2000" class="form-control" required></textarea>
+                            <div class="form-text">@T["details.reviewModeration"]</div>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">@T["details.submitReview"]</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0">@Model.ReviewMessage</p>
+        }
+    </section>
+
+    @if (Model.RelatedProducts.Count > 0)
+    {
+        <section class="section">
+            <div class="section-heading">
+                <h2>@T["details.relatedProducts"]</h2>
+                <a asp-controller="Products" asp-action="Index" asp-route-categoryId="@product.CategoryId">@T.Format("details.moreIn", product.Category?.Name)</a>
+            </div>
+
+            <div class="row row-cols-2 row-cols-md-4 g-3" data-reveal-group>
+                @foreach (var related in Model.RelatedProducts)
+                {
+                    <div class="col">
+                        <partial name="_ProductCard" model="related" />
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/storefront.js" asp-append-version="true"></script>
+}

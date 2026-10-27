@@ -1,0 +1,218 @@
+@model ProductFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="col-12 text-danger small"></div>
+
+@if (Model.SimilarProducts.Count > 0)
+{
+    <div class="col-12">
+        <div class="alert alert-warning mb-0" role="alert">
+            <div class="fw-semibold">@T["adm.similarProductWarningTitle"]</div>
+            <div class="small">@T["adm.similarProductWarningText"]</div>
+            <ul class="mb-0 mt-2">
+                @foreach (var similarProduct in Model.SimilarProducts)
+                {
+                    <li>
+                        <a asp-area="Admin" asp-controller="Products" asp-action="Details"
+                           asp-route-id="@similarProduct.Id">@similarProduct.Name</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+@if (ViewData.ModelState.TryGetValue(nameof(Model.Variants), out var variantsState)
+     && variantsState.Errors.Count > 0)
+{
+    <div class="col-12">
+        <div class="alert alert-danger py-2 small mb-0">
+            @foreach (var error in variantsState.Errors)
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    </div>
+}
+
+<div class="col-md-8">
+    <label asp-for="Name" class="form-label">@T["adm.name"]</label>
+    <input asp-for="Name" class="form-control" autocomplete="off" />
+    <span asp-validation-for="Name" class="text-danger small"></span>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="Slug" class="form-label">@T["adm.slug"]</label>
+    <input asp-for="Slug" class="form-control" placeholder="@T["adm.slugHint"]" />
+    <span asp-validation-for="Slug" class="text-danger small"></span>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="BrandId" class="form-label">@T["products.brand"]</label>
+    <select asp-for="BrandId" asp-items="Model.BrandOptions" class="form-select">
+        <option value="">@T["adm.chooseBrand"]</option>
+    </select>
+    <span asp-validation-for="BrandId" class="text-danger small"></span>
+</div>
+
+<div class="col-md-4">
+    <label asp-for="CategoryId" class="form-label">@T["products.category"]</label>
+    <select asp-for="CategoryId" asp-items="Model.CategoryOptions" class="form-select">
+        <option value="">@T["adm.chooseCategory"]</option>
+    </select>
+    <span asp-validation-for="CategoryId" class="text-danger small"></span>
+</div>
+
+<div class="col-md-4 d-flex align-items-end">
+    <div class="d-flex gap-4 mb-2">
+        <div class="form-check">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">@T["adm.active"]</label>
+        </div>
+        <div class="form-check">
+            <input asp-for="IsFeatured" class="form-check-input" />
+            <label asp-for="IsFeatured" class="form-check-label">@T["adm.featured"]</label>
+        </div>
+    </div>
+</div>
+
+<div class="col-12">
+    <label asp-for="Description" class="form-label">@T["details.description"]</label>
+    <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+    <span asp-validation-for="Description" class="text-danger small"></span>
+</div>
+
+<div class="col-12"><hr class="my-2" /></div>
+
+<div class="col-md-6">
+    <label asp-for="MainImage" class="form-label">@T["adm.mainImage"]</label>
+    <input asp-for="MainImage" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+    <div class="form-text">@T["adm.imageRules"]</div>
+    <span asp-validation-for="MainImage" class="text-danger small"></span>
+
+    @if (!string.IsNullOrWhiteSpace(Model.MainImageUrl))
+    {
+        <div class="d-flex align-items-center gap-3 mt-2">
+            <img src="@Model.MainImageUrl" alt="@T["adm.currentImage"]" class="gallery-thumb" />
+            <div class="form-check">
+                <input asp-for="RemoveMainImage" class="form-check-input" />
+                <label asp-for="RemoveMainImage" class="form-check-label small">@T["adm.removeMainImage"]</label>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="col-md-6">
+    <label asp-for="GalleryImages" class="form-label">@T["adm.galleryImages"]</label>
+    <input asp-for="GalleryImages" type="file" multiple class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+    <div class="form-text">@T["adm.galleryRules"]</div>
+    <span asp-validation-for="GalleryImages" class="text-danger small"></span>
+</div>
+
+<div class="col-12"><hr class="my-2" /></div>
+
+<div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0">@T["adm.variants"]</h2>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add-variant">@T["adm.addVariant"]</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table variant-table align-middle mb-2" id="variants-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>@T["details.colors"]</th>
+                    <th>@T["details.storage"]</th>
+                    <th>Variant image</th>
+                    <th>@T["cartPage.price"]</th>
+                    <th>@T["adm.compareAt"]</th>
+                    <th>@T["adm.stock"]</th>
+                    <th>@T["adm.lowStockAlert"]</th>
+                    <th>@T["adm.active"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < Model.Variants.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            <input type="hidden" asp-for="Variants[i].Id" />
+                            <input asp-for="Variants[i].SKU" class="form-control form-control-sm" />
+                            <span asp-validation-for="Variants[i].SKU" class="text-danger small"></span>
+                        </td>
+                        <td><input asp-for="Variants[i].Color" class="form-control form-control-sm" /></td>
+                        <td><input asp-for="Variants[i].Storage" class="form-control form-control-sm" /></td>
+                        <td>
+                            <input asp-for="Variants[i].ImageFile" type="file" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp" />
+                            <input asp-for="Variants[i].ImageUrl" type="hidden" />
+                            @if (!string.IsNullOrWhiteSpace(Model.Variants[i].ImageUrl))
+                            {
+                                <img src="@Model.Variants[i].ImageUrl" alt="@Model.Variants[i].Color" class="gallery-thumb mt-1" />
+                            }
+                        </td>
+                        <td>
+                            <input asp-for="Variants[i].Price" class="form-control form-control-sm" type="number" step="0.01" min="0.01" />
+                            <span asp-validation-for="Variants[i].Price" class="text-danger small"></span>
+                        </td>
+                        <td>
+                            <input asp-for="Variants[i].CompareAtPrice" class="form-control form-control-sm" type="number" step="0.01" min="0.01" />
+                            <span asp-validation-for="Variants[i].CompareAtPrice" class="text-danger small"></span>
+                        </td>
+                        <td>
+                            <input asp-for="Variants[i].StockQuantity" class="form-control form-control-sm" type="number" min="0" />
+                            <span asp-validation-for="Variants[i].StockQuantity" class="text-danger small"></span>
+                        </td>
+                        <td>
+                            <input asp-for="Variants[i].LowStockThreshold" class="form-control form-control-sm" type="number" min="0" />
+                        </td>
+                        <td>
+                            <div class="form-check">
+                                <input asp-for="Variants[i].IsActive" class="form-check-input" />
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-variant"
+                                    title="@T["adm.removeVariant"]" aria-label="@T["adm.removeVariant"]">×</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <input type="hidden" id="variant-next-index" value="@Model.Variants.Count" />
+    <div class="form-text">
+        @T["adm.variantRemoveNote"]
+    </div>
+</div>
+
+<template id="variant-row-template">
+    <tr>
+        <td>
+            <input type="hidden" name="Variants[__index__].Id" value="0" />
+            <input type="text" name="Variants[__index__].SKU" class="form-control form-control-sm" />
+            <span class="text-danger small" data-valmsg-for="Variants[__index__].SKU" data-valmsg-replace="true"></span>
+        </td>
+        <td><input type="text" name="Variants[__index__].Color" class="form-control form-control-sm" /></td>
+        <td><input type="text" name="Variants[__index__].Storage" class="form-control form-control-sm" /></td>
+        <td>
+            <input type="file" name="Variants[__index__].ImageFile" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp" />
+            <input type="hidden" name="Variants[__index__].ImageUrl" value="" />
+        </td>
+        <td><input type="number" step="0.01" min="0.01" name="Variants[__index__].Price" class="form-control form-control-sm" /></td>
+        <td><input type="number" step="0.01" min="0.01" name="Variants[__index__].CompareAtPrice" class="form-control form-control-sm" /></td>
+        <td><input type="number" min="0" value="0" name="Variants[__index__].StockQuantity" class="form-control form-control-sm" /></td>
+        <td><input type="number" min="0" value="5" name="Variants[__index__].LowStockThreshold" class="form-control form-control-sm" /></td>
+        <td>
+            <div class="form-check">
+                <input type="hidden" name="Variants[__index__].IsActive" value="false" />
+                <input type="checkbox" name="Variants[__index__].IsActive" value="true" class="form-check-input" checked />
+            </div>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-variant"
+                    title="@T["adm.removeVariant"]" aria-label="@T["adm.removeVariant"]">×</button>
+        </td>
+    </tr>
+</template>

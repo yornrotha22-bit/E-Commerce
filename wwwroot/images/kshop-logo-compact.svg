@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 200" role="img" aria-label="KStore">
+  <title>KStore</title>
+  <defs>
+    <linearGradient id="kcGold" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#F3BF2E" />
+      <stop offset="0.5" stop-color="#FFD75E" />
+      <stop offset="1" stop-color="#DDA013" />
+    </linearGradient>
+    <linearGradient id="kcSilver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4F5F7" />
+      <stop offset="0.6" stop-color="#D9DCE2" />
+      <stop offset="1" stop-color="#B4BAC3" />
+    </linearGradient>
+    <linearGradient id="kcStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD24F" />
+      <stop offset="1" stop-color="#DFA211" />
+    </linearGradient>
+  </defs>
+
+  <!-- orbit arc -->
+  <ellipse cx="108" cy="118" rx="96" ry="34" transform="rotate(-16 108 118)"
+           fill="none" stroke="url(#kcStroke)" stroke-width="8" opacity="0.45" />
+
+  <!-- phone -->
+  <g transform="rotate(-10 92 100)">
+    <rect x="46" y="12" width="92" height="176" rx="20"
+          fill="#FFFCF3" stroke="url(#kcStroke)" stroke-width="9" />
+    <rect x="76" y="24" width="32" height="5" rx="2.5" fill="#EFC55A" />
+    <rect x="74" y="173" width="36" height="5" rx="2.5" fill="#EFC55A" opacity="0.8" />
+  </g>
+
+  <!-- K -->
+  <text x="52" y="152" font-family="Inter, 'Segoe UI', Arial, Helvetica, sans-serif"
+        font-size="152" font-weight="800" fill="url(#kcGold)" letter-spacing="-7">K</text>
+
+  <!-- Store -->
+  <text x="178" y="146" font-family="Inter, 'Segoe UI', Arial, Helvetica, sans-serif"
+        font-size="126" font-weight="500" fill="url(#kcSilver)" letter-spacing="-5">Store</text>
+</svg>

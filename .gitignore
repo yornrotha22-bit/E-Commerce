@@ -1,0 +1,28 @@
+## Build output
+bin/
+obj/
+
+## Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+
+## User secrets and local settings
+appsettings.Local.json
+*.pfx
+
+## Uploaded files (runtime content)
+wwwroot/uploads/
+
+## Test / coverage output
+TestResults/
+*.trx
+coverage*.json
+coverage*.xml
+
+## OS files
+Thumbs.db
+.DS_Store
+
+appsettings.Development.json

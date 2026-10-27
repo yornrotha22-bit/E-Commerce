@@ -1,0 +1,77 @@
+@model PagedList<AdminBrandRow>
+@{
+    ViewData["Title"] = T["admin.nav.brands"];
+    var search = ViewData["Search"] as string;
+}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <form method="get" class="d-flex gap-2">
+        <input type="search" name="search" value="@search" class="form-control" placeholder="@T["adm.searchBrands"]" />
+        <button type="submit" class="btn btn-outline-secondary">@T["common.search"]</button>
+        @if (!string.IsNullOrWhiteSpace(search))
+        {
+            <a class="btn btn-link" asp-action="Index">@T["products.clearAll"]</a>
+        }
+    </form>
+    <a class="btn btn-primary" asp-action="Create">@T["adm.newBrand"]</a>
+</div>
+<div class="card admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@T["products.brand"]</th>
+                    <th>@T["admin.nav.products"]</th>
+                    <th>@T["dashboard.status"]</th>
+                    <th>@T["adm.createdAt"]</th>
+                    <th class="text-end">@T["dashboard.actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            @T["adm.noBrands"]
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@item.Name</div>
+                                <div class="small text-muted">/@item.Slug</div>
+                            </td>
+                            <td>@item.ProductCount</td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge text-bg-success">@T["adm.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">@T["adm.inactive"]</span>
+                                }
+                            </td>
+                            <td class="small text-muted">@item.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Edit" asp-route-id="@item.Id">@T["account.edit"]</a>
+
+                                <form class="d-inline" asp-action="ToggleActive" asp-route-id="@item.Id" method="post">
+                                    <button type="submit"
+                                            class="btn btn-sm @(item.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                        @(item.IsActive ? T["adm.deactivate"] : T["adm.activate"])
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    <partial name="~/Views/Admin/Shared/_TablePagination.cshtml" model="PaginationViewModel.From(Model)" />
+</div>

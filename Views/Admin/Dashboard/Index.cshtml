@@ -1,0 +1,277 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = T["admin.dashboardTitle"];
+
+    var maxDailyAmount = Model.SalesLast7Days.Count == 0
+        ? 0m
+        : Model.SalesLast7Days.Max(day => day.Amount);
+
+    var weekOrderCount = Model.SalesLast7Days.Sum(day => day.OrderCount);
+
+    string OrderBadge(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => "text-bg-warning",
+        OrderStatus.Confirmed => "text-bg-info",
+        OrderStatus.Processing => "text-bg-info",
+        OrderStatus.Shipped => "text-bg-primary",
+        OrderStatus.Delivered => "text-bg-success",
+        OrderStatus.Cancelled => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    string PaymentBadge(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Paid => "text-bg-success",
+        PaymentStatus.Pending => "text-bg-warning",
+        PaymentStatus.Failed => "text-bg-danger",
+        PaymentStatus.Refunded => "text-bg-secondary",
+        _ => "text-bg-secondary"
+    };
+
+    var canManageCatalog = User.IsInRole(Roles.SuperAdmin) || User.IsInRole(Roles.Admin);
+    var canViewReports = User.IsInRole(Roles.SuperAdmin) || User.IsInRole(Roles.Admin);
+}
+
+<div class="d-flex justify-content-end mb-3 dashboard-export no-print">
+    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+        @T["dashboard.downloadPdf"]
+    </button>
+</div>
+<div class="print-only mb-3">
+    <h1 class="h4">@T["admin.dashboardTitle"]</h1>
+    <div class="small text-muted">@DateTime.UtcNow.ToString("yyyy-MM-dd")</div>
+</div>
+
+<section class="metrics" aria-label="@T["dashboard.summaryAria"]">
+    <div class="metric">
+        <span class="metric__label">@T["dashboard.paidSales"]</span>
+        <span class="metric__value">$@Model.TotalSales.ToString("N2")</span>
+        <span class="metric__meta">@T["dashboard.confirmedAllTime"]</span>
+    </div>
+    <div class="metric">
+        <span class="metric__label">@T["dashboard.orders"]</span>
+        <span class="metric__value">@Model.OrderCount</span>
+        <span class="metric__meta @(Model.PendingOrders > 0 ? "is-alert" : null)">
+            @T.Format("dashboard.awaitingAction", Model.PendingOrders)
+        </span>
+    </div>
+    <div class="metric">
+        <span class="metric__label">@T["dashboard.customers"]</span>
+        <span class="metric__value">@Model.CustomerCount</span>
+        <span class="metric__meta">@T["dashboard.customerAccounts"]</span>
+    </div>
+    <div class="metric">
+        <span class="metric__label">@T["dashboard.activeProducts"]</span>
+        <span class="metric__value">@Model.ProductCount</span>
+        <span class="metric__meta @(Model.LowStockCount > 0 ? "is-alert" : null)">
+            @T.Format("dashboard.lowStock", Model.LowStockCount)
+        </span>
+    </div>
+</section>
+
+@section Styles {
+    <style>
+        .print-only { display: none; }
+        @@media print {
+            .admin-sidebar, .admin-topbar, .no-print, .admin-toast-container { display: none !important; }
+            .print-only { display: block !important; }
+            .admin-shell, .admin-main, .admin-content { display: block !important; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; }
+            .dash-grid { display: block !important; }
+            .admin-card, .metric { break-inside: avoid; box-shadow: none !important; }
+            body.admin-body { background: #fff !important; color: #111 !important; }
+            a { color: inherit !important; text-decoration: none !important; }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        window.addEventListener("load", function () {
+            if (new URLSearchParams(window.location.search).get("pdf") === "1") {
+                window.print();
+            }
+        });
+    </script>
+}
+
+<div class="dash-grid">
+    <section class="admin-card">
+        <div class="admin-card__head">
+            <span class="admin-card__title">
+                @T["dashboard.paidSales"]
+                <span class="admin-card__subtitle">@T["dashboard.last7Days"]</span>
+            </span>
+            @if (canViewReports)
+            {
+                <a class="admin-card__link" asp-area="Admin" asp-controller="Reports" asp-action="Index">
+                    @T["dashboard.openReport"]
+                </a>
+            }
+        </div>
+        <div class="admin-card__body">
+            @if (maxDailyAmount == 0m)
+            {
+                <div class="admin-empty">
+                    <div class="admin-empty__title">@T["dashboard.noPaidSales"]</div>
+                    <div>@T["dashboard.noPaidSalesText"]</div>
+                </div>
+            }
+            else
+            {
+                <div class="dash-chart" role="img"
+                     aria-label="@T["dashboard.chartAria"]">
+                    @foreach (var day in Model.SalesLast7Days)
+                    {
+                        var height = maxDailyAmount <= 0m
+                            ? 0
+                            : (double)(day.Amount / maxDailyAmount) * 100;
+                        var isToday = day.Date == Model.SalesLast7Days[^1].Date;
+                        <div class="dash-chart__col @(isToday ? "is-today" : null)"
+                             title="@day.Date.ToString("ddd dd MMM"): $@day.Amount.ToString("N2") · @day.OrderCount order@(day.OrderCount == 1 ? string.Empty : "s")">
+                            @if (day.Amount > 0m)
+                            {
+                                <span class="dash-chart__value">$@day.Amount.ToString("N0")</span>
+                            }
+                            <div class="dash-chart__bar" style="height: @Math.Max(2, Math.Round(height, 1))%"></div>
+                        </div>
+                    }
+                </div>
+                <div class="dash-chart__labels" aria-hidden="true">
+                    @foreach (var day in Model.SalesLast7Days)
+                    {
+                        <span class="dash-chart__label">@day.Date.ToString("ddd")</span>
+                    }
+                </div>
+            }
+
+            <div class="dash-chart__summary">
+                <div class="dash-chart__summary-item">
+                    <span class="dash-chart__summary-value">$@Model.SalesLast7DaysTotal.ToString("N2")</span>
+                    <span class="dash-chart__summary-label">@T["dashboard.revenue7"]</span>
+                </div>
+                <div class="dash-chart__summary-item">
+                    <span class="dash-chart__summary-value">@weekOrderCount</span>
+                    <span class="dash-chart__summary-label">@T["dashboard.paidOrders"]</span>
+                </div>
+                <div class="dash-chart__summary-item">
+                    <span class="dash-chart__summary-value">$@((weekOrderCount == 0 ? 0m : Model.SalesLast7DaysTotal / weekOrderCount).ToString("N2"))</span>
+                    <span class="dash-chart__summary-label">@T["dashboard.averageOrder"]</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card__head">
+            <span class="admin-card__title">
+                @T["dashboard.lowStockTitle"]
+                <span class="admin-card__subtitle">@(Model.LowStockCount == 1
+                    ? T.Format("dashboard.variantCountOne", Model.LowStockCount)
+                    : T.Format("dashboard.variantCount", Model.LowStockCount))</span>
+            </span>
+            <a class="admin-card__link" asp-area="Admin" asp-controller="Products"
+               asp-action="Index" asp-route-sort="stock">@T["dashboard.manage"]</a>
+        </div>
+        <div class="admin-card__body">
+            @if (Model.LowStockProducts.Count == 0)
+            {
+                <div class="admin-empty">
+                    <div class="admin-empty__title">@T["dashboard.stockHealthy"]</div>
+                    <div>@T["dashboard.stockHealthyText"]</div>
+                </div>
+            }
+            else
+            {
+                <table class="dash-stock-table">
+                    <tbody>
+                        @foreach (var row in Model.LowStockProducts)
+                        {
+                            <tr>
+                                <td>
+                                    <a class="dash-stock-table__name" asp-area="Admin"
+                                       asp-controller="Products" asp-action="Details" asp-route-id="@row.ProductId">
+                                        @row.ProductName
+                                    </a>
+                                    <span class="dash-stock-table__meta">
+                                        @row.SKU
+                                        @if (!string.IsNullOrWhiteSpace(row.VariantDescription))
+                                        {
+                                            <text>· @row.VariantDescription</text>
+                                        }
+                                    </span>
+                                </td>
+                                <td class="dash-stock-table__qty">
+                                    @row.StockQuantity <span>/ @row.LowStockThreshold</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </section>
+</div>
+
+<section class="admin-card">
+    <div class="admin-card__head">
+        <span class="admin-card__title">
+            @T["dashboard.recentOrders"]
+            <span class="admin-card__subtitle">@T.Format("dashboard.lastN", Model.RecentOrders.Count)</span>
+        </span>
+        <a class="admin-card__link" asp-area="Admin" asp-controller="Orders" asp-action="Index">@T["dashboard.allOrders"]</a>
+    </div>
+
+    @if (Model.RecentOrders.Count == 0)
+    {
+        <div class="admin-empty">
+            <div class="admin-empty__title">@T["dashboard.noOrders"]</div>
+            <div>@T["dashboard.noOrdersText"]</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>@T["dashboard.order"]</th>
+                        <th>@T["dashboard.customer"]</th>
+                        <th>@T["dashboard.payment"]</th>
+                        <th>@T["dashboard.status"]</th>
+                        <th class="text-end">@T["dashboard.total"]</th>
+                        <th>@T["dashboard.date"]</th>
+                        <th class="text-end" scope="col" aria-label="@T["dashboard.actions"]"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model.RecentOrders)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@order.OrderNumber</td>
+                            <td>@order.CustomerName</td>
+                            <td><span class="badge @PaymentBadge(order.PaymentStatus)">@T["status." + order.PaymentStatus]</span></td>
+                            <td><span class="badge @OrderBadge(order.OrderStatus)">@T["status." + order.OrderStatus]</span></td>
+                            <td class="text-end text-nowrap">$@order.TotalAmount.ToString("N2")</td>
+                            <td class="text-muted text-nowrap">@order.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end">
+                                <a class="admin-card__link" asp-area="Admin" asp-controller="Orders"
+                                   asp-action="Details" asp-route-id="@order.Id">@T["dashboard.view"]</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<div class="dash-links">
+    @if (canManageCatalog)
+    {
+        <a asp-area="Admin" asp-controller="Products" asp-action="Create">@T["dashboard.newProduct"]</a>
+        <a asp-area="Admin" asp-controller="Products" asp-action="Import">@T["adm.importExportProducts"]</a>
+    }
+    <a asp-area="Admin" asp-controller="Orders" asp-action="Index" asp-route-status="Pending">@T["dashboard.pendingOrders"]</a>
+    <a asp-area="Admin" asp-controller="Reviews" asp-action="Index" asp-route-status="pending">@T["dashboard.reviewsToModerate"]</a>
+    <a asp-area="" asp-controller="Home" asp-action="Index">@T["dashboard.openStorefront"]</a>
+</div>

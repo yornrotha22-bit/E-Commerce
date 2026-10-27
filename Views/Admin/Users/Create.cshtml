@@ -1,0 +1,81 @@
+@model TeamMemberCreateViewModel
+@{
+    ViewData["Title"] = T["adm.addTeamMember"];
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card admin-card">
+            <div class="card-header">@T["adm.newTeamAccount"]</div>
+            <div class="card-body">
+                <form method="post" asp-action="Create" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label">@T["account.fullName"]</label>
+                        <input asp-for="FullName" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">@T["account.email"]</label>
+                        <input asp-for="Email" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="PhoneNumber" class="form-label">@T["account.phone"]</label>
+                        <input asp-for="PhoneNumber" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Role" class="form-label">@T["adm.role"]</label>
+                        <select asp-for="Role" class="form-select">
+                            <option value="Staff">@T["adm.roleStaff"]</option>
+                            <option value="Admin">@T["adm.roleAdmin"]</option>
+                            <option value="SuperAdmin">@T["adm.roleSuperAdmin"]</option>
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger small"></span>
+                        <div class="form-text">
+                            @T["adm.roleHint"]
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label">@T["common.password"]</label>
+                            <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label">@T["account.confirmPassword"]</label>
+                            <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-text mb-3">
+                        @T["account.passwordRules"]
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">@T["adm.createAccount"]</button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">@T["account.cancel"]</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card admin-card h-100">
+            <div class="card-header">@T["adm.rolePermissions"]</div>
+            <div class="card-body small">
+                <p><span class="badge text-bg-info">@T["adm.roleStaffBadge"]</span> @T["adm.roleStaffDesc"]</p>
+                <p><span class="badge text-bg-warning">@T["adm.roleAdminBadge"]</span> @T["adm.roleAdminDesc"]</p>
+                <p class="mb-0"><span class="badge text-bg-danger">@T["adm.roleSuperAdminBadge"]</span> @T["adm.roleSuperAdminDesc"]</p>
+            </div>
+        </div>
+    </div>
+</div>

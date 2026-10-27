@@ -1,0 +1,179 @@
+@model AdminProductDetailsViewModel
+@{
+    ViewData["Title"] = T["adm.productDetails"];
+    var product = Model.Product;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h2 class="h5 mb-1">@product.Name</h2>
+        <div class="small text-muted">
+            /@product.Slug · @product.Brand?.Name · @product.Category?.Name
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" asp-action="Index">@T["adm.backToList"]</a>
+        <a class="btn btn-primary" asp-action="Edit" asp-route-id="@product.Id">@T["adm.editProduct"]</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card admin-card h-100">
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(product.MainImageUrl))
+                {
+                    <img src="@product.MainImageUrl" alt="@product.Name" class="img-fluid rounded border mb-3" />
+                }
+                else
+                {
+                    <div class="text-muted small mb-3">@T["adm.noMainImage"]</div>
+                }
+
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted">@T["dashboard.status"]</dt>
+                    <dd class="col-7">
+                        @if (product.IsActive)
+                        {
+                            <span class="badge text-bg-success">@T["adm.active"]</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-secondary">@T["adm.inactive"]</span>
+                        }
+                        @if (product.IsFeatured)
+                        {
+                            <span class="badge text-bg-light border">@T["card.featured"]</span>
+                        }
+                    </dd>
+
+                    <dt class="col-5 text-muted">@T["adm.createdAt"]</dt>
+                    <dd class="col-7">@product.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                    <dt class="col-5 text-muted">@T["adm.updatedAt"]</dt>
+                    <dd class="col-7">@(product.UpdatedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(product.Description))
+                {
+                    <hr />
+                    <p class="small mb-0">@product.Description</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card admin-card">
+            <div class="card-header">@T["adm.variants"]</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>@T["details.colors"]</th>
+                            <th>@T["details.storage"]</th>
+                            <th class="text-end">@T["cartPage.price"]</th>
+                            <th class="text-end">@T["adm.compareAt"]</th>
+                            <th class="text-end">@T["adm.stock"]</th>
+                            <th>@T["dashboard.status"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var variant in product.Variants.OrderBy(v => v.Id))
+                        {
+                            <tr>
+                                <td class="fw-semibold">@variant.SKU</td>
+                                <td>@(variant.Color ?? "—")</td>
+                                <td>@(variant.Storage ?? "—")</td>
+                                <td class="text-end">$@variant.Price.ToString("N2")</td>
+                                <td class="text-end">
+                                    @(variant.CompareAtPrice.HasValue ? $"${variant.CompareAtPrice.Value:N2}" : "—")
+                                </td>
+                                <td class="text-end">
+                                    @if (variant.StockQuantity <= variant.LowStockThreshold)
+                                    {
+                                        <span class="badge text-bg-danger">@variant.StockQuantity</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@variant.StockQuantity</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (variant.IsActive)
+                                    {
+                                        <span class="badge text-bg-success">@T["adm.active"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">@T["adm.inactive"]</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (product.Images.Count > 0)
+        {
+            <div class="card admin-card mt-3">
+                <div class="card-header">@T["adm.gallery"]</div>
+                <div class="card-body d-flex flex-wrap gap-2">
+                    @foreach (var image in product.Images.OrderBy(i => i.DisplayOrder))
+                    {
+                        <img src="@image.Url" alt="@image.AltText" class="gallery-thumb" />
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-12">
+        <div class="card admin-card">
+            <div class="card-header">@T["adm.recentMovements"]</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@T["dashboard.date"]</th>
+                            <th>SKU</th>
+                            <th>@T["adm.movementType"]</th>
+                            <th class="text-end">@T["adm.movementChange"]</th>
+                            <th class="text-end">@T["adm.stockAfter"]</th>
+                            <th>@T["adm.reason"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RecentMovements.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">@T["adm.noMovements"]</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var movement in Model.RecentMovements)
+                            {
+                                <tr>
+                                    <td class="small text-muted">@movement.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="small">@movement.ProductVariant?.SKU</td>
+                                    <td>@movement.Type</td>
+                                    <td class="text-end">
+                                        <span class="@(movement.QuantityChange >= 0 ? "text-success" : "text-danger")">
+                                            @(movement.QuantityChange > 0 ? "+" : string.Empty)@movement.QuantityChange
+                                        </span>
+                                    </td>
+                                    <td class="text-end">@movement.StockAfter</td>
+                                    <td class="small text-muted">@movement.Reason</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

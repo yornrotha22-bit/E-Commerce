@@ -1,0 +1,280 @@
+﻿@model ProductListViewModel
+@{
+    var heading = Model.ActiveCategoryName
+        ?? (string.IsNullOrWhiteSpace(Model.Search) ? T["products.allProducts"] : T["products.searchResults"]);
+
+    var activeFilterCount = 0;
+    if (!string.IsNullOrWhiteSpace(Model.Search)) { activeFilterCount++; }
+    if (Model.CategoryId.HasValue) { activeFilterCount++; }
+    if (Model.BrandId.HasValue) { activeFilterCount++; }
+    if (Model.MinPrice.HasValue || Model.MaxPrice.HasValue) { activeFilterCount++; }
+    if (Model.InStockOnly) { activeFilterCount++; }
+
+    var windowStart = Math.Max(1, Model.Page - 2);
+    var windowEnd = Math.Min(Model.TotalPages, windowStart + 4);
+    windowStart = Math.Max(1, windowEnd - 4);
+}
+
+<section class="rs-page-head rs-page-head--compact rs-tech-bg">
+    <span class="rs-tech-bg__scan" aria-hidden="true"></span>
+    <div class="container">
+        <nav class="breadcrumb-line mb-2" aria-label="@T["common.breadcrumb"]">
+            <a asp-area="" asp-controller="Home" asp-action="Index">@T["nav.home"]</a>
+            <span aria-hidden="true">/</span>
+            @if (Model.ActiveCategoryName is not null)
+            {
+                <a asp-area="" asp-controller="Products" asp-action="Index">@T["products.shop"]</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">@Model.ActiveCategoryName</span>
+            }
+            else
+            {
+                <span aria-current="page">@T["products.shop"]</span>
+            }
+        </nav>
+
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
+            <div>
+                <span class="rs-eyebrow">@(Model.ActiveBrandName ?? T["products.catalog"])</span>
+                <h1 class="rs-page-head__title mb-1">@heading</h1>
+                <p class="rs-page-head__text mb-0">
+                    @if (Model.TotalItems == 0)
+                    {
+                        <span>@T["products.none"]</span>
+                    }
+                    else
+                    {
+                        <span>@T.Format("products.showing", Model.FirstItemNumber, Model.LastItemNumber, Model.TotalItems)</span>
+                    }
+                </p>
+            </div>
+
+            <form class="rs-sort" method="get" asp-area="" asp-controller="Products" asp-action="Index">
+                @if (!string.IsNullOrWhiteSpace(Model.Search))
+                {
+                    <input type="hidden" name="search" value="@Model.Search" />
+                }
+                @if (Model.CategoryId.HasValue)
+                {
+                    <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                }
+                @if (Model.BrandId.HasValue)
+                {
+                    <input type="hidden" name="brandId" value="@Model.BrandId" />
+                }
+                @if (Model.MinPrice.HasValue)
+                {
+                    <input type="hidden" name="minPrice" value="@Model.MinPrice" />
+                }
+                @if (Model.MaxPrice.HasValue)
+                {
+                    <input type="hidden" name="maxPrice" value="@Model.MaxPrice" />
+                }
+                @if (Model.InStockOnly)
+                {
+                    <input type="hidden" name="inStockOnly" value="true" />
+                }
+                <label for="sortSelect" class="visually-hidden">@T["products.sortLabel"]</label>
+                <select id="sortSelect" name="sort" class="form-select form-select-sm" data-autosubmit>
+                    <option value="newest" selected="@(Model.Sort == "newest")">@T["sort.newest"]</option>
+                    <option value="oldest" selected="@(Model.Sort == "oldest")">@T["sort.oldest"]</option>
+                    <option value="name" selected="@(Model.Sort == "name")">@T["sort.name"]</option>
+                    <option value="price_asc" selected="@(Model.Sort == "price_asc")">@T["sort.priceAsc"]</option>
+                    <option value="price_desc" selected="@(Model.Sort == "price_desc")">@T["sort.priceDesc"]</option>
+                    <option value="popular" selected="@(Model.Sort == "popular")">@T["sort.popular"]</option>
+                </select>
+            </form>
+        </div>
+    </div>
+</section>
+
+<div class="container rs-section rs-section--tight">
+    <div class="row g-4 g-lg-5">
+        <aside class="col-lg-3">
+            <button class="btn btn-outline-secondary w-100 d-lg-none rs-filter-toggle" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#filterPanel"
+                    aria-expanded="false" aria-controls="filterPanel">
+                @T["products.filters"]
+                @if (activeFilterCount > 0)
+                {
+                    <span class="rs-filter-toggle__count">@activeFilterCount</span>
+                }
+            </button>
+
+            <div class="collapse d-lg-block" id="filterPanel">
+                <form class="rs-filter" method="get" asp-area="" asp-controller="Products" asp-action="Index">
+                    <input type="hidden" name="sort" value="@Model.Sort" />
+
+                    <div class="rs-filter__group">
+                        <label for="filterSearch" class="rs-filter__label">@T["common.search"]</label>
+                        <input id="filterSearch" type="search" name="search" value="@Model.Search"
+                               class="form-control" placeholder="@T["products.searchPlaceholder"]" />
+                    </div>
+
+                    <div class="rs-filter__group">
+                        <label for="filterCategory" class="rs-filter__label">@T["products.category"]</label>
+                        <select id="filterCategory" name="CategoryId" asp-items="Model.CategoryOptions"
+                                class="form-select">
+                            <option value="">@T["products.allCategories"]</option>
+                        </select>
+                    </div>
+
+                    <div class="rs-filter__group">
+                        <label for="filterBrand" class="rs-filter__label">@T["products.brand"]</label>
+                        <select id="filterBrand" name="BrandId" asp-items="Model.BrandOptions"
+                                class="form-select">
+                            <option value="">@T["products.allBrands"]</option>
+                        </select>
+                    </div>
+
+                    <div class="rs-filter__group">
+                        <span class="rs-filter__label">@T["products.price"]</span>
+                        <div class="rs-price-range">
+                            <input type="number" name="MinPrice" value="@Model.MinPrice" min="0" step="0.01"
+                                   class="form-control" placeholder="@T["products.min"]" aria-label="@T["products.min"]" />
+                            <span aria-hidden="true">–</span>
+                            <input type="number" name="MaxPrice" value="@Model.MaxPrice" min="0" step="0.01"
+                                   class="form-control" placeholder="@T["products.max"]" aria-label="@T["products.max"]" />
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch rs-filter__switch">
+                        <input type="checkbox" name="InStockOnly" value="true" class="form-check-input"
+                               id="filterInStock" checked="@Model.InStockOnly" />
+                        <label class="form-check-label" for="filterInStock">@T["products.inStockOnly"]</label>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">@T["products.apply"]</button>
+                        <a class="btn btn-outline-secondary btn-sm" asp-area="" asp-controller="Products"
+                           asp-action="Index">@T["products.reset"]</a>
+                    </div>
+                </form>
+
+                <p class="rs-filter__note">
+                    @T["products.filterNote"]
+                    <a asp-area="" asp-controller="Home" asp-action="Policies" asp-fragment="returns">@T["products.returnRules"]</a>
+                </p>
+            </div>
+        </aside>
+
+        <section class="col-lg-9">
+            @if (Model.HasActiveFilters)
+            {
+                <div class="rs-chips" aria-label="@T["products.activeFilters"]">
+                    @if (!string.IsNullOrWhiteSpace(Model.Search))
+                    {
+                        <a class="rs-chip" asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-categoryId="@Model.CategoryId" asp-route-brandId="@Model.BrandId"
+                           asp-route-minPrice="@Model.MinPrice" asp-route-maxPrice="@Model.MaxPrice"
+                           asp-route-inStockOnly="@Model.InStockOnly" asp-route-sort="@Model.Sort">
+                            “@Model.Search” <span aria-hidden="true">×</span>
+                        </a>
+                    }
+                    @if (Model.ActiveCategoryName is not null)
+                    {
+                        <a class="rs-chip" asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-search="@Model.Search" asp-route-brandId="@Model.BrandId"
+                           asp-route-minPrice="@Model.MinPrice" asp-route-maxPrice="@Model.MaxPrice"
+                           asp-route-inStockOnly="@Model.InStockOnly" asp-route-sort="@Model.Sort">
+                            @Model.ActiveCategoryName <span aria-hidden="true">×</span>
+                        </a>
+                    }
+                    @if (Model.ActiveBrandName is not null)
+                    {
+                        <a class="rs-chip" asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                           asp-route-minPrice="@Model.MinPrice" asp-route-maxPrice="@Model.MaxPrice"
+                           asp-route-inStockOnly="@Model.InStockOnly" asp-route-sort="@Model.Sort">
+                            @Model.ActiveBrandName <span aria-hidden="true">×</span>
+                        </a>
+                    }
+                    @if (Model.MinPrice.HasValue || Model.MaxPrice.HasValue)
+                    {
+                        <a class="rs-chip" asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                           asp-route-brandId="@Model.BrandId" asp-route-inStockOnly="@Model.InStockOnly"
+                           asp-route-sort="@Model.Sort">
+                            $@(Model.MinPrice?.ToString("N0") ?? "0")–$@(Model.MaxPrice?.ToString("N0") ?? T["products.any"])
+                            <span aria-hidden="true">×</span>
+                        </a>
+                    }
+                    @if (Model.InStockOnly)
+                    {
+                        <a class="rs-chip" asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                           asp-route-brandId="@Model.BrandId" asp-route-minPrice="@Model.MinPrice"
+                           asp-route-maxPrice="@Model.MaxPrice" asp-route-sort="@Model.Sort">
+                            @T["products.inStock"] <span aria-hidden="true">×</span>
+                        </a>
+                    }
+                    <a class="rs-chips__clear" asp-area="" asp-controller="Products" asp-action="Index">
+                        @T["products.clearAll"]
+                    </a>
+                </div>
+            }
+
+            @if (Model.Products.Count == 0)
+            {
+                <div class="rs-empty">
+                    <h2 class="rs-empty__title">@T["products.emptyTitle"]</h2>
+                    <p class="rs-empty__text">
+                        @T["products.emptyText"]
+                    </p>
+                    <a class="btn btn-primary" asp-area="" asp-controller="Products" asp-action="Index">
+                        @T["products.browseAll"]
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="row row-cols-2 row-cols-md-3 g-3 g-lg-4" data-reveal-group>
+                    @foreach (var product in Model.Products)
+                    {
+                        <div class="col">
+                            <partial name="_ProductCard" model="product" />
+                        </div>
+                    }
+                </div>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="rs-pagination" aria-label="@T["products.pagination"]">
+                        <a class="rs-pagination__step @(Model.HasPrevious ? null : "is-disabled")"
+                           asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                           asp-route-brandId="@Model.BrandId" asp-route-minPrice="@Model.MinPrice"
+                           asp-route-maxPrice="@Model.MaxPrice" asp-route-inStockOnly="@Model.InStockOnly"
+                           asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)"
+                           aria-disabled="@(Model.HasPrevious ? "false" : "true")">
+                            @T["products.previous"]
+                        </a>
+
+                        <div class="rs-pagination__pages">
+                            @for (var number = windowStart; number <= windowEnd; number++)
+                            {
+                                <a class="rs-pagination__page @(number == Model.Page ? "is-current" : null)"
+                                   asp-area="" asp-controller="Products" asp-action="Index"
+                                   asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                                   asp-route-brandId="@Model.BrandId" asp-route-minPrice="@Model.MinPrice"
+                                   asp-route-maxPrice="@Model.MaxPrice" asp-route-inStockOnly="@Model.InStockOnly"
+                                   asp-route-sort="@Model.Sort" asp-route-page="@number"
+                                   aria-current="@(number == Model.Page ? "page" : null)">@number</a>
+                            }
+                        </div>
+
+                        <a class="rs-pagination__step @(Model.HasNext ? null : "is-disabled")"
+                           asp-area="" asp-controller="Products" asp-action="Index"
+                           asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                           asp-route-brandId="@Model.BrandId" asp-route-minPrice="@Model.MinPrice"
+                           asp-route-maxPrice="@Model.MaxPrice" asp-route-inStockOnly="@Model.InStockOnly"
+                           asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page + 1)"
+                           aria-disabled="@(Model.HasNext ? "false" : "true")">
+                            @T["products.next"]
+                        </a>
+                    </nav>
+                }
+            }
+        </section>
+    </div>
+</div>

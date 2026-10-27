@@ -1,0 +1,139 @@
+@model CartViewModel
+@{
+    var placeholder = Url.Content("~/images/placeholder-product.svg");
+    var progress = Model.FreeShippingThreshold <= 0
+        ? 100
+        : (int)Math.Clamp(Math.Round(Model.Subtotal / Model.FreeShippingThreshold * 100), 0, 100);
+}
+
+<div class="rs-drawer-cart"
+     data-cart-content
+     data-cart-count="@Model.ItemCount"
+     data-cart-subtotal="@Model.Subtotal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)">
+    @if (Model.IsEmpty)
+    {
+        <div class="rs-drawer-cart__empty">
+            <svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 8h12l-1.1 10.2a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 8Z"
+                      fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M9.2 8V6.6a2.8 2.8 0 0 1 5.6 0V8" fill="none" stroke="currentColor"
+                      stroke-width="1.4" stroke-linecap="round" />
+            </svg>
+            <p class="rs-drawer-cart__empty-title">@T["cart.empty"]</p>
+            <p class="small text-muted mb-3">@T["cart.emptyText"]</p>
+            <a class="btn btn-primary w-100" asp-area="" asp-controller="Products" asp-action="Index">
+                @T["cart.browse"]
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="rs-drawer-cart__shipping">
+            <p class="rs-drawer-cart__shipping-text">
+                @if (Model.QualifiesForFreeShipping)
+                {
+                    <span>@T["cart.freeUnlocked"]</span>
+                }
+                else
+                {
+                    <span>@T.Format("cart.addForFree", Model.AmountToFreeShipping.ToString("N2"))</span>
+                }
+            </p>
+            <div class="rs-meter" role="progressbar" aria-valuenow="@progress" aria-valuemin="0"
+                 aria-valuemax="100" aria-label="@T["cart.freeProgress"]">
+                <span class="rs-meter__fill" style="width: @(progress)%;"></span>
+            </div>
+        </div>
+
+        <ul class="rs-drawer-cart__list">
+            @foreach (var item in Model.Items)
+            {
+                var image = string.IsNullOrWhiteSpace(item.ImageUrl) ? placeholder : item.ImageUrl;
+
+                <li class="rs-drawer-cart__item @(item.IsAvailable ? null : "is-unavailable")">
+                    <a class="rs-drawer-cart__thumb" asp-area="" asp-controller="Products"
+                       asp-action="Details" asp-route-id="@item.ProductId" tabindex="-1" aria-hidden="true">
+                        <img src="@image" alt="" loading="lazy"
+                             data-fallback="@Url.Content("~/images/placeholder-product.svg")" />
+                    </a>
+
+                    <div class="rs-drawer-cart__info">
+                        <a class="rs-drawer-cart__name" asp-area="" asp-controller="Products"
+                           asp-action="Details" asp-route-id="@item.ProductId">@item.ProductName</a>
+
+                        @if (!string.IsNullOrWhiteSpace(item.VariantLabel))
+                        {
+                            <span class="rs-drawer-cart__variant">@item.VariantLabel</span>
+                        }
+
+                        <span class="rs-drawer-cart__qty">
+                            @item.Quantity &times; $@item.UnitPrice.ToString("N2")
+                        </span>
+
+                        @if (!item.IsAvailable && !string.IsNullOrWhiteSpace(item.UnavailableReason))
+                        {
+                            <span class="rs-drawer-cart__warning">@item.UnavailableReason</span>
+                        }
+                    </div>
+
+                    <div class="rs-drawer-cart__side">
+                        <span class="rs-drawer-cart__line">$@item.LineTotal.ToString("N2")</span>
+
+                        <form method="post" data-drawer-remove
+                              asp-area="" asp-controller="Cart" asp-action="Remove">
+                            <input type="hidden" name="cartItemId" value="@item.Id" />
+                            <button type="submit" class="rs-drawer-cart__remove"
+                                    aria-label="@T.Format("cart.removeAria", item.ProductName)">
+                                @T["cart.remove"]
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            }
+        </ul>
+
+        <div class="rs-drawer-cart__foot">
+            <div class="rs-drawer-cart__row">
+                <span>@T["cart.subtotal"]</span>
+                <span>$@Model.Subtotal.ToString("N2")</span>
+            </div>
+            <div class="rs-drawer-cart__row rs-drawer-cart__row--muted">
+                <span>@T["cart.shipping"]</span>
+                <span>
+                    @if (Model.ShippingFee == 0)
+                    {
+                        <span>@T["cart.free"]</span>
+                    }
+                    else
+                    {
+                        <span>$@Model.ShippingFee.ToString("N2")</span>
+                    }
+                </span>
+            </div>
+
+            @if (Model.HasUnavailableItems)
+            {
+                <p class="rs-drawer-cart__notice">
+                    @T["cart.unavailableNotice"]
+                </p>
+            }
+
+            <div class="rs-drawer-cart__actions">
+                @if (Model.CanCheckout)
+                {
+                    <a class="btn btn-primary w-100" asp-area="" asp-controller="Checkout" asp-action="Index">
+                        @T["cart.checkout"]
+                    </a>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-primary w-100" disabled>@T["cart.checkout"]</button>
+                }
+
+                <a class="rs-drawer-cart__viewcart" asp-area="" asp-controller="Cart" asp-action="Index">
+                    @T["cart.viewFull"]
+                </a>
+            </div>
+        </div>
+    }
+</div>

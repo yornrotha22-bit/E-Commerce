@@ -1,0 +1,153 @@
+@model AdminProductListViewModel
+@{
+    ViewData["Title"] = T["admin.nav.products"];
+}
+
+<form method="get" class="card admin-card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label asp-for="Search" class="form-label small mb-1">@T["common.search"]</label>
+                <input asp-for="Search" class="form-control" placeholder="@T["products.searchPlaceholder"]" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label asp-for="CategoryId" class="form-label small mb-1">@T["products.category"]</label>
+                <select asp-for="CategoryId" asp-items="Model.CategoryOptions" class="form-select">
+                    <option value="">@T["products.allCategories"]</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label asp-for="BrandId" class="form-label small mb-1">@T["products.brand"]</label>
+                <select asp-for="BrandId" asp-items="Model.BrandOptions" class="form-select">
+                    <option value="">@T["products.allBrands"]</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label asp-for="IsActive" class="form-label small mb-1">@T["dashboard.status"]</label>
+                <select asp-for="IsActive" asp-items="Model.StatusOptions" class="form-select"></select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label asp-for="Sort" class="form-label small mb-1">@T["products.sortLabel"]</label>
+                <select asp-for="Sort" class="form-select">
+                    <option value="newest">@T["adm.sortNewest"]</option>
+                    <option value="oldest">@T["adm.sortOldest"]</option>
+                    <option value="name">@T["sort.name"]</option>
+                    <option value="price_asc">@T["adm.sortPriceAsc"]</option>
+                    <option value="price_desc">@T["adm.sortPriceDesc"]</option>
+                    <option value="stock">@T["adm.sortStock"]</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2 pt-2">
+                <button type="submit" class="btn btn-outline-secondary">@T["products.apply"]</button>
+                <a class="btn btn-link" asp-action="Index">@T["products.reset"]</a>
+                <a class="btn btn-outline-secondary ms-auto" asp-action="Export">@T["adm.exportProducts"]</a>
+                <a class="btn btn-outline-secondary" asp-action="Import">@T["adm.importExportProducts"]</a>
+                <a class="btn btn-primary" asp-action="Create">@T["dashboard.newProduct"]</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="card admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@T["cartPage.product"]</th>
+                    <th>@T["products.brand"]</th>
+                    <th>@T["products.category"]</th>
+                    <th>@T["cartPage.price"]</th>
+                    <th class="text-end">@T["adm.stock"]</th>
+                    <th class="text-end">@T["details.variants"]</th>
+                    <th>@T["dashboard.status"]</th>
+                    <th class="text-end">@T["dashboard.actions"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            @T["products.none"]
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (!string.IsNullOrWhiteSpace(item.MainImageUrl))
+                                    {
+                                        <img src="@item.MainImageUrl" alt="@item.Name" class="product-thumb" />
+                                    }
+                                    else
+                                    {
+                                        <span class="product-thumb-placeholder">@T["adm.noImage"]</span>
+                                    }
+                                    <div>
+                                        <div class="fw-semibold">@item.Name</div>
+                                        <div class="small text-muted">
+                                            /@item.Slug
+                                            @if (item.IsFeatured)
+                                            {
+                                                <span class="badge text-bg-light border ms-1">@T["card.featured"]</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@item.BrandName</td>
+                            <td>@item.CategoryName</td>
+                            <td class="text-nowrap">
+                                $@item.MinPrice.ToString("N2")
+                                @if (item.MaxPrice > item.MinPrice)
+                                {
+                                    <span class="text-muted">– $@item.MaxPrice.ToString("N2")</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <span class="badge @(item.TotalStock > 0 ? "text-bg-light border" : "text-bg-danger")">
+                                    @item.TotalStock
+                                </span>
+                            </td>
+                            <td class="text-end">@item.VariantCount</td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge text-bg-success">@T["adm.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">@T["adm.inactive"]</span>
+                                }
+                                @if (!item.IsVisibleOnStorefront)
+                                {
+                                    <span class="badge text-bg-warning" title="@T["adm.hiddenOnStorefrontHint"]">
+                                        @T["adm.hiddenOnStorefront"]
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Details" asp-route-id="@item.Id">@T["dashboard.view"]</a>
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Edit" asp-route-id="@item.Id">@T["account.edit"]</a>
+                                <form class="d-inline" asp-action="ToggleActive" asp-route-id="@item.Id" method="post">
+                                    <button type="submit"
+                                            class="btn btn-sm @(item.IsActive ? "btn-outline-danger" : "btn-outline-success")">
+                                        @(item.IsActive ? T["adm.deactivate"] : T["adm.activate"])
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <partial name="~/Views/Admin/Shared/_TablePagination.cshtml" model="PaginationViewModel.Create(Model.Page, Model.PageSize, Model.TotalItems)" />
+</div>

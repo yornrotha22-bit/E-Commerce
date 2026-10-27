@@ -1,0 +1,48 @@
+@model ProductFormViewModel
+@{
+    ViewData["Title"] = T["adm.editProduct"];
+}
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" class="card admin-card">
+    <div class="card-body row g-3">
+        <input type="hidden" asp-for="Id" />
+        <partial name="_ProductForm" model="Model" />
+
+        <div class="col-12 d-flex gap-2 pt-2">
+            <button type="submit" class="btn btn-primary">@T["account.saveChanges"]</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">@T["account.cancel"]</a>
+            <a class="btn btn-link ms-auto" asp-action="Details" asp-route-id="@Model.Id">@T["adm.viewDetails"]</a>
+        </div>
+    </div>
+</form>
+
+<div class="card admin-card mt-3">
+    <div class="card-header">@T["adm.galleryImages"]</div>
+    <div class="card-body">
+        @if (Model.ExistingImages.Count == 0)
+        {
+            <p class="text-muted mb-0">@T["adm.noGalleryImages"]</p>
+        }
+        else
+        {
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var image in Model.ExistingImages)
+                {
+                    <div class="text-center">
+                        <img src="@image.Url" alt="@T["adm.galleryImageAlt"]" class="gallery-thumb" />
+                        <div class="small text-muted" style="max-width: 180px; overflow-wrap: anywhere;">@image.Url</div>
+                        <form asp-action="DeleteGalleryImage" asp-route-id="@Model.Id" method="post" class="mt-2">
+                            <input type="hidden" name="imageId" value="@image.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">@T["account.delete"]</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/admin-products.js" asp-append-version="true"></script>
+}
